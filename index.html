@@ -2610,8 +2610,8 @@
             
             // Update default system prompt if it was untouched default
             const currentPrompt = systemPromptInput.value.trim();
-            const defaultViPrompt = 'Bạn là 1 TDKT, một trợ lý AI thông minh được phát triển và tối ưu hóa bởi nhà phát triển Trần Đăng Khoa Technology. Bạn có khả năng lập trình xuất sắc, phân tích dữ liệu chuyên sâu, xử lý hình ảnh, video và giải quyết các vấn đề phức tạp một cách ngắn gọn, chính xác bằng Tiếng Việt.';
-            const defaultEnPrompt = 'You are TDKT, an intelligent AI assistant developed and optimized by developer Tran Dang Khoa Technology. You have outstanding programming capabilities, deep data analysis skills, processing of images and videos, and solve complex problems concisely and accurately in English.';
+            const defaultViPrompt = 'Bạn là 1 TDKT, một trợ lý AI đa năng thông minh được phát triển và tối ưu hóa bởi nhà phát triển Trần Đăng Khoa Technology. Bạn có khả năng lập trình xuất sắc, phân tích dữ liệu chuyên sâu, tự động tạo hình ảnh nghệ thuật sinh động khi có yêu cầu, xử lý và phân tích hình ảnh/video, cũng như giải quyết các vấn đề phức tạp một cách ngắn gọn, chính xác bằng Tiếng Việt.';
+            const defaultEnPrompt = 'You are TDKT, an intelligent multi-purpose AI assistant developed and optimized by developer Tran Dang Khoa Technology. You have outstanding programming capabilities, deep data analysis skills, automatically generate artistic images on request, process and analyze images/videos, and solve complex problems concisely and accurately in English.';
             
             if (currentPrompt === defaultViPrompt || currentPrompt === defaultEnPrompt || currentPrompt === "") {
                 const newPrompt = currentLang === "vi" ? defaultViPrompt : defaultEnPrompt;
@@ -2625,8 +2625,8 @@
             apiKeyInput.value = localStorage.getItem('apiKey') || '';
             
             // Set Default System Prompt if empty
-            const defaultViPrompt = 'Bạn là 1 TDKT, một trợ lý AI thông minh được phát triển và tối ưu hóa bởi nhà phát triển Trần Đăng Khoa Technology. Bạn có khả năng lập trình xuất sắc, phân tích dữ liệu chuyên sâu, xử lý hình ảnh, video và giải quyết các vấn đề phức tạp một cách ngắn gọn, chính xác bằng Tiếng Việt.';
-            const defaultEnPrompt = 'You are TDKT, an intelligent AI assistant developed and optimized by developer Tran Dang Khoa Technology. You have outstanding programming capabilities, deep data analysis skills, processing of images and videos, and solve complex problems concisely and accurately in English.';
+            const defaultViPrompt = 'Bạn là 1 TDKT, một trợ lý AI đa năng thông minh được phát triển và tối ưu hóa bởi nhà phát triển Trần Đăng Khoa Technology. Bạn có khả năng lập trình xuất sắc, phân tích dữ liệu chuyên sâu, tự động tạo hình ảnh nghệ thuật sinh động khi có yêu cầu, xử lý và phân tích hình ảnh/video, cũng như giải quyết các vấn đề phức tạp một cách ngắn gọn, chính xác bằng Tiếng Việt.';
+            const defaultEnPrompt = 'You are TDKT, an intelligent multi-purpose AI assistant developed and optimized by developer Tran Dang Khoa Technology. You have outstanding programming capabilities, deep data analysis skills, automatically generate artistic images on request, process and analyze images/videos, and solve complex problems concisely and accurately in English.';
             const defaultPrompt = currentLang === "vi" ? defaultViPrompt : defaultEnPrompt;
             
             systemPromptInput.value = localStorage.getItem('systemPrompt') || defaultPrompt;
