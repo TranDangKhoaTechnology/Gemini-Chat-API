@@ -73,7 +73,7 @@ def init_db():
     # NEW: Seed default admin and user keys if the table is freshly created and empty
     c.execute("SELECT COUNT(*) FROM api_keys")
     if c.fetchone()[0] == 0:
-        env_admin_key = os.environ.get("ADMIN_API_KEY", "sk-bb72106aad16484d9790a3569ed3af8f")
+        env_admin_key = os.environ.get("ADMIN_API_KEY", "123456789")
         global_limit = 60
         # Seed Admin Key
         c.execute("INSERT OR IGNORE INTO api_keys (key, name, active, allowed_models, role, expires_at, req_per_min) VALUES (?, ?, 1, ?, ?, ?, ?)",
@@ -83,6 +83,13 @@ def init_db():
                   ("freecc", "FreeCC Bypass Key", "all", "user", 0.0, global_limit))
         c.execute("INSERT OR IGNORE INTO api_keys (key, name, active, allowed_models, role, expires_at, req_per_min) VALUES (?, ?, 1, ?, ?, ?, ?)",
                   ("sk-opencode-free", "OpenCode Free Bypass Key", "all", "user", 0.0, global_limit))
+    else:
+        # Check and migrate old default admin key to '123456789' if it exists and '123456789' does not exist
+        c.execute("SELECT COUNT(*) FROM api_keys WHERE key = 'sk-bb72106aad16484d9790a3569ed3af8f' AND role = 'admin'")
+        if c.fetchone()[0] > 0:
+            c.execute("SELECT COUNT(*) FROM api_keys WHERE key = '123456789'")
+            if c.fetchone()[0] == 0:
+                c.execute("UPDATE api_keys SET key = '123456789' WHERE key = 'sk-bb72106aad16484d9790a3569ed3af8f'")
         
     conn.commit()
     conn.close()
@@ -300,3 +307,28 @@ def check_and_set_alert_flood(cooldown_seconds=300) -> bool:
         return True
     conn.close()
     return False
+
+def update_admin_api_key(old_key, new_key):
+    conn = _get_conn()
+    c = conn.cursor()
+    try:
+        # Check if old_key is admin
+        c.execute("SELECT role FROM api_keys WHERE key = ?", (old_key,))
+        row = c.fetchone()
+        if not row or row[0] != 'admin':
+            return False, "Khóa cũ không tồn tại hoặc không phải quyền Admin."
+            
+        # Check if new_key already exists
+        if old_key != new_key:
+            c.execute("SELECT key FROM api_keys WHERE key = ?", (new_key,))
+            if c.fetchone():
+                return False, "Khóa mới đã được sử dụng bởi API Key khác."
+                
+        c.execute("UPDATE api_keys SET key = ? WHERE key = ?", (new_key, old_key))
+        success = c.rowcount > 0
+        conn.commit()
+        return success, "Đổi khóa Admin thành công." if success else "Không thể cập nhật khóa."
+    except Exception as e:
+        return False, f"Lỗi cơ sở dữ liệu: {str(e)}"
+    finally:
+        conn.close()

@@ -626,11 +626,34 @@
             <form id="auth-form" onsubmit="handleAuthSubmit(event)">
                 <div class="input-group">
                     <label for="admin-key">Admin API Key</label>
-                    <input type="password" id="admin-key" class="input-field" placeholder="sk-..." required autocomplete="current-password">
+                    <input type="password" id="admin-key" class="input-field" value="123456789" placeholder="sk-..." required autocomplete="current-password">
                 </div>
                 <button type="submit" id="auth-btn" class="btn">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                     Kết nối máy chủ
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Forced Reset Password Screen -->
+    <div id="forced-reset-screen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: none; justify-content: center; align-items: center; z-index: 1200; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(12px);">
+        <div class="auth-card glass-panel" style="max-width: 500px;">
+            <div class="auth-logo" style="background: linear-gradient(to right, #ef4444, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">BẢO MẬT HỆ THỐNG</div>
+            <div class="auth-subtitle" style="color: #fca5a5; margin-bottom: 20px; font-weight: 500;">Bạn đang sử dụng khoá Admin API Key mặc định. Để tiếp tục quản trị, vui lòng thiết lập khóa mới dưới đây.</div>
+            
+            <form id="forced-reset-form" onsubmit="handleForcedResetSubmit(event)">
+                <div class="input-group">
+                    <label for="forced-new-key">Admin API Key Mới</label>
+                    <input type="password" id="forced-new-key" class="input-field" placeholder="Nhập khoá quản trị bảo mật mới..." required>
+                </div>
+                <div class="input-group">
+                    <label for="forced-confirm-key">Xác nhận Admin API Key Mới</label>
+                    <input type="password" id="forced-confirm-key" class="input-field" placeholder="Nhập lại khoá mới để xác nhận..." required>
+                </div>
+                <button type="submit" id="forced-reset-btn" class="btn" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                    Thiết lập khoá quản trị
                 </button>
             </form>
         </div>
@@ -651,6 +674,10 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
                     API Chat
                 </a>
+                <button onclick="openChangePasswordModal()" class="btn-outline" style="display: flex; align-items: center; gap: 8px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                    Đổi mật khẩu
+                </button>
                 <div id="active-key-display" class="key-badge">sk-...</div>
                 <button onclick="handleLogout()" class="btn-outline" style="color: var(--accent-danger); border-color: rgba(239, 68, 68, 0.25);">Đăng xuất</button>
             </div>
@@ -835,6 +862,35 @@
         </div>
     </div>
 
+    <!-- Active Change Password Modal -->
+    <div id="change-password-modal" class="modal-overlay">
+        <div class="modal-card glass-panel" style="max-width: 450px;">
+            <button class="close-modal-btn" onclick="closeChangePasswordModal()">&times;</button>
+            <div class="panel-title" style="border-bottom: none; justify-content: center; font-size: 1.4rem; color: var(--accent-primary);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                Đổi khoá Admin API Key
+            </div>
+            
+            <p style="text-align: center; margin-top: 10px; color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">
+                Thiết lập khóa Admin API Key mới để thay thế khóa hiện tại.
+            </p>
+
+            <form id="active-change-password-form" onsubmit="handleActiveChangePasswordSubmit(event)">
+                <div class="input-group">
+                    <label for="active-new-key">Admin API Key Mới</label>
+                    <input type="password" id="active-new-key" class="input-field" placeholder="Nhập khoá quản trị mới..." required>
+                </div>
+                <div class="input-group">
+                    <label for="active-confirm-key">Xác nhận Admin API Key Mới</label>
+                    <input type="password" id="active-confirm-key" class="input-field" placeholder="Nhập lại khoá mới..." required>
+                </div>
+                <button type="submit" id="active-change-password-btn" class="btn">
+                    Cập nhật khoá
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- Toast Notifications Container -->
     <div class="toast-container" id="toast-container"></div>
 
@@ -844,8 +900,12 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             if (ADMIN_API_KEY) {
-                showApp();
-                refreshDashboardData();
+                if (ADMIN_API_KEY === "123456789") {
+                    showForcedReset();
+                } else {
+                    showApp();
+                    refreshDashboardData();
+                }
             } else {
                 showAuth();
             }
@@ -855,12 +915,20 @@
         function showAuth() {
             document.getElementById("auth-screen").style.display = "flex";
             document.getElementById("app-container").style.display = "none";
+            document.getElementById("forced-reset-screen").style.display = "none";
         }
 
         function showApp() {
             document.getElementById("auth-screen").style.display = "none";
+            document.getElementById("forced-reset-screen").style.display = "none";
             document.getElementById("app-container").style.display = "flex";
             document.getElementById("active-key-display").innerText = maskKey(ADMIN_API_KEY);
+        }
+
+        function showForcedReset() {
+            document.getElementById("auth-screen").style.display = "none";
+            document.getElementById("app-container").style.display = "none";
+            document.getElementById("forced-reset-screen").style.display = "flex";
         }
 
         function maskKey(key) {
@@ -956,9 +1024,14 @@
                 } else if (testRes.ok) {
                     ADMIN_API_KEY = key;
                     localStorage.setItem("gemini_admin_key", key);
-                    showToast("Kết nối máy chủ Nexus thành công!", "success");
-                    showApp();
-                    refreshDashboardData();
+                    if (key === "123456789") {
+                        showToast("Xác thực thành công! Vui lòng đổi mật khẩu mặc định.", "warning");
+                        showForcedReset();
+                    } else {
+                        showToast("Kết nối máy chủ Nexus thành công!", "success");
+                        showApp();
+                        refreshDashboardData();
+                    }
                 } else {
                     showToast("Lỗi máy chủ không xác định khi kết nối.", "error");
                 }
@@ -968,6 +1041,92 @@
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Kết nối máy chủ`;
+            }
+        }
+
+        // Forced Password Reset Submit
+        async function handleForcedResetSubmit(e) {
+            e.preventDefault();
+            const newKey = document.getElementById("forced-new-key").value.trim();
+            const confirmKey = document.getElementById("forced-confirm-key").value.trim();
+            const btn = document.getElementById("forced-reset-btn");
+
+            if (!newKey) return;
+            if (newKey === "123456789") {
+                showToast("Vui lòng chọn mật khẩu mới khác mật khẩu mặc định '123456789'!", "error");
+                return;
+            }
+            if (newKey !== confirmKey) {
+                showToast("Mật khẩu xác nhận không khớp!", "error");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Đang cập nhật...";
+
+            try {
+                const res = await apiRequest("/v1/admin/change_key", "POST", { new_key: newKey });
+                showToast("Thiết lập Admin API Key mới thành công!", "success");
+                
+                ADMIN_API_KEY = newKey;
+                localStorage.setItem("gemini_admin_key", newKey);
+                
+                document.getElementById("forced-reset-form").reset();
+                showApp();
+                refreshDashboardData();
+            } catch (err) {
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg> Thiết lập khoá quản trị`;
+            }
+        }
+
+        // Active Change Password Functions
+        function openChangePasswordModal() {
+            document.getElementById("active-new-key").value = "";
+            document.getElementById("active-confirm-key").value = "";
+            document.getElementById("change-password-modal").style.display = "flex";
+        }
+
+        function closeChangePasswordModal() {
+            document.getElementById("change-password-modal").style.display = "none";
+        }
+
+        async function handleActiveChangePasswordSubmit(e) {
+            e.preventDefault();
+            const newKey = document.getElementById("active-new-key").value.trim();
+            const confirmKey = document.getElementById("active-confirm-key").value.trim();
+            const btn = document.getElementById("active-change-password-btn");
+
+            if (!newKey) return;
+            if (newKey === "123456789") {
+                showToast("Vui lòng chọn mật khẩu mới khác mật khẩu mặc định '123456789'!", "error");
+                return;
+            }
+            if (newKey !== confirmKey) {
+                showToast("Mật khẩu xác nhận không khớp!", "error");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Đang cập nhật...";
+
+            try {
+                const res = await apiRequest("/v1/admin/change_key", "POST", { new_key: newKey });
+                showToast("Đổi khóa Admin API Key thành công!", "success");
+                
+                ADMIN_API_KEY = newKey;
+                localStorage.setItem("gemini_admin_key", newKey);
+                document.getElementById("active-key-display").innerText = maskKey(ADMIN_API_KEY);
+                
+                closeChangePasswordModal();
+                refreshDashboardData();
+            } catch (err) {
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Cập nhật khoá";
             }
         }
 

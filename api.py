@@ -910,6 +910,9 @@ class KeyCreateRequest(BaseModel):
 class KeyRevokeRequest(BaseModel):
     key: str
 
+class ChangeAdminKeyRequest(BaseModel):
+    new_key: str
+
 @app.get("/", response_class=HTMLResponse)
 async def serve_dashboard():
     dashboard_path = os.path.join("static", "dashboard.html")
@@ -971,3 +974,15 @@ async def revoke_key(request: KeyRevokeRequest, admin_auth = Depends(verify_admi
     if not success:
         raise HTTPException(status_code=400, detail="Failed to revoke key or key not found")
     return {"status": "success"}
+
+@app.post("/v1/admin/change_key")
+async def change_admin_key(request: ChangeAdminKeyRequest, admin_auth = Depends(verify_admin_key)):
+    old_key = admin_auth["key"]
+    new_key = request.new_key.strip()
+    if not new_key:
+        raise HTTPException(status_code=400, detail="Khóa mới không được để trống")
+    
+    success, msg = db.update_admin_api_key(old_key, new_key)
+    if not success:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"status": "success", "message": msg}

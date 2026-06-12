@@ -341,10 +341,10 @@
         
         <div class="p-4 flex items-center justify-between border-b border-gray-800">
             <button onclick="createNewSession()" class="flex-1 flex items-center justify-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 text-gray-200 font-medium transition-colors border border-gray-700/50 hover:border-gray-600 shadow-sm">
-                <i class="ph ph-plus text-lg"></i> New Chat
+                <i class="ph ph-plus text-lg"></i> <span id="text-newChat">New Chat</span>
             </button>
-            <button onclick="document.getElementById('importChatInput').click()" class="ml-2 p-2.5 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800 border border-gray-700/50 transition-colors" title="Import Chat File">
-                <i class="ph ph-import text-lg"></i>
+            <button onclick="document.getElementById('importChatInput').click()" class="ml-2 p-2.5 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800 border border-gray-700/50 transition-colors" id="btn-importChat" title="Import Chat File">
+                <i class="ph ph-arrow-square-in text-lg"></i>
             </button>
             <input type="file" id="importChatInput" accept=".json" class="hidden" onchange="importChat(event)">
             <button onclick="toggleSidebar()" class="ml-2 p-2.5 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800 md:hidden">
@@ -356,33 +356,33 @@
             <!-- Collapsible Config Section -->
             <details class="group p-4 border-b border-gray-800" open>
                 <summary class="flex justify-between items-center text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer list-none select-none hover:text-gray-300 transition-colors">
-                    <span>API Configuration</span>
+                    <span id="text-apiConfig">API Configuration</span>
                     <i class="ph ph-caret-down transition-transform group-open:rotate-180 text-sm"></i>
                 </summary>
                 
                 <div class="space-y-4 mt-4 animate-fade-in-up">
                     <div class="space-y-1.5">
-                        <label class="text-xs text-gray-400 pl-1">API Base URL</label>
+                        <label class="text-xs text-gray-400 pl-1" id="text-apiBaseUrl">API Base URL</label>
                         <input type="text" id="apiUrl" value="http://localhost:8000" class="w-full px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-gray-500 text-sm text-gray-200 placeholder-gray-500 transition-colors">
                     </div>
                     
                     <!-- Fast key selection dropdown -->
                     <div class="space-y-1.5" id="apiKeySelectorContainer" style="display: none;">
-                        <label class="text-xs text-gray-400 pl-1">API Key (Chọn nhanh)</label>
+                        <label class="text-xs text-gray-400 pl-1" id="text-apiKeySelector">API Key (Chọn nhanh)</label>
                         <select id="apiKeySelector" class="w-full px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-gray-500 text-sm text-gray-200 placeholder-gray-500 transition-colors">
                             <option value="custom">-- Nhập key thủ công --</option>
                         </select>
                     </div>
                     
                     <div class="space-y-1.5" id="apiKeyInputContainer">
-                        <label class="text-xs text-gray-400 pl-1">API Key</label>
+                        <label class="text-xs text-gray-400 pl-1" id="text-apiKeyInput">API Key</label>
                         <input type="password" id="apiKey" placeholder="sk-..." class="w-full px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-gray-500 text-sm text-gray-200 placeholder-gray-500 transition-colors">
                     </div>
 
                     <!-- Enhanced: System Prompt Configuration -->
                     <div class="space-y-1.5 pt-2">
                         <label class="text-xs text-gray-400 pl-1 flex justify-between items-center">
-                            System Prompt
+                            <span id="text-systemPrompt">System Prompt</span>
                             <span class="text-[10px] text-gray-500 font-normal border border-gray-700 px-1.5 rounded">Injected</span>
                         </label>
                         <textarea id="systemPrompt" rows="3" placeholder="You are a helpful AI assistant..." class="w-full px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-gray-500 text-sm text-gray-200 placeholder-gray-500 transition-colors resize-y min-h-[80px]"></textarea>
@@ -392,7 +392,7 @@
                     <div class="space-y-3 pt-2">
                         <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-300 pl-1 group/toggle">
                             <input type="checkbox" id="streamToggle" class="w-4 h-4 rounded bg-gray-800 border-gray-700 text-brand-500 focus:ring-brand-600 focus:ring-offset-gray-900 transition-colors">
-                            <span class="group-hover/toggle:text-white transition-colors">Stream Responses</span>
+                            <span class="group-hover/toggle:text-white transition-colors" id="text-streamResponse">Stream Responses</span>
                         </label>
                     </div>
                 </div>
@@ -400,7 +400,7 @@
 
             <!-- Chat Sessions List -->
             <div class="p-4 flex-1">
-                <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-1">Recent Chats</h2>
+                <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-1" id="text-recentChats">Recent Chats</h2>
                 <div id="chatSessionsList" class="space-y-1">
                     <!-- Sessions dynamically injected here -->
                 </div>
@@ -408,12 +408,15 @@
         </div>
         
         <div class="p-4 border-t border-gray-800 shrink-0">
-            <div class="flex items-center gap-3 px-2">
-                <div class="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white font-bold text-sm shadow-lg">
-                    U
+            <a href="/" class="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-gray-800 transition-colors text-decoration-none" id="btn-userWorkspace" style="text-decoration: none;">
+                <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-lg">
+                    A
                 </div>
-                <div class="text-sm font-medium text-gray-200 truncate">User Workspace</div>
-            </div>
+                <div class="flex flex-col overflow-hidden">
+                    <div class="text-sm font-medium text-gray-200 truncate" id="text-userWorkspace">Admin Dashboard</div>
+                    <div class="text-[10px] text-gray-500 truncate" id="text-userWorkspaceSub">Bấm để quản trị API</div>
+                </div>
+            </a>
         </div>
     </aside>
 
@@ -422,7 +425,7 @@
         
         <!-- Top Navigation Bar -->
         <header class="h-14 shrink-0 flex items-center justify-between px-4 border-b border-gray-800/60 bg-gray-850/90 backdrop-blur-sm sticky top-0 z-20">
-            <div class="w-12 flex items-center">
+            <div class="w-28 flex items-center">
                 <button onclick="toggleSidebar()" class="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800 transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                 </button>
@@ -431,14 +434,20 @@
             <!-- Central Model Selector -->
             <div class="flex-1 flex justify-center">
                 <div class="relative group flex items-center">
-                    <select id="modelSelect" class="appearance-none bg-transparent hover:bg-gray-800 text-gray-200 font-medium py-1.5 pl-4 pr-9 rounded-xl cursor-pointer focus:outline-none transition-colors text-[15px] border border-transparent hover:border-gray-700" disabled>
-                        <option value="">Select a model</option>
+                    <select id="modelSelect" class="appearance-none bg-transparent hover:bg-gray-800 text-gray-200 font-medium py-1.5 pl-4 pr-9 rounded-xl cursor-pointer focus:outline-none transition-colors text-[14px] border border-transparent hover:border-gray-700" disabled>
+                        <option value="" id="opt-modelSelectPlaceholder">Select a model</option>
                     </select>
                     <svg class="w-4 h-4 text-gray-400 absolute right-3 pointer-events-none group-hover:text-gray-200 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                 </div>
             </div>
             
-            <div class="w-12 flex justify-end">
+            <div class="w-28 flex justify-end items-center gap-1.5">
+                <!-- Language Switcher Button -->
+                <button onclick="toggleLanguage()" id="langBtn" class="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-1" title="Chuyển đổi ngôn ngữ / Switch Language" style="border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02);">
+                    <i class="ph ph-translate text-lg" style="color: var(--accent-primary);"></i>
+                    <span id="langBtnText" class="text-[10px] font-bold tracking-wider">VI</span>
+                </button>
+                
                 <button onclick="fetchModels()" id="fetchBtnTop" class="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800 transition-colors" title="Refresh Models">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                 </button>
@@ -451,11 +460,12 @@
         </div>
 
         <!-- Empty State Placeholder -->
-        <div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-20 z-0">
+        <div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-20 z-0 px-4 text-center">
             <div class="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-lg mb-6">
-                <svg class="w-10 h-10 text-gray-900" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-12h2v6h-2zm0 8h2v2h-2z"/></svg>
+                <svg class="w-8 h-8 text-gray-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 22 8.5 22 19.5 12 26 2 19.5 2 8.5 12 2"></polygon><path d="M12 7 L12 17 M7 12 L17 12"></path></svg>
             </div>
-            <h2 class="text-2xl font-semibold text-gray-200">How can I help you today?</h2>
+            <h2 class="text-2.5xl font-bold text-gray-100 tracking-tight" id="text-emptyTitle">Tôi có thể giúp gì cho bạn hôm nay?</h2>
+            <p class="text-gray-400 text-sm mt-3 max-w-md" id="text-emptySub">Trợ lý AI thế hệ mới được phát triển và tối ưu hóa bởi Trần Đăng Khoa Technology</p>
         </div>
 
         <!-- Input Area Container (Wrapped for DropZone) -->
@@ -559,7 +569,7 @@
                     </button>
                 </div>
                 <div class="text-center mt-2.5">
-                    <p class="text-[11px] text-gray-500">AI can make mistakes. Consider verifying important information.</p>
+                    <p class="text-[11px] text-gray-500" id="text-warningText">AI can make mistakes. Consider verifying important information.</p>
                 </div>
             </div>
         </div>
@@ -2512,10 +2522,118 @@
             });
         }
 
+        // ==========================================
+        // MULTI-LANGUAGE TRANSLATION SYSTEM (i18n)
+        // ==========================================
+        let currentLang = localStorage.getItem("currentLang") || "vi";
+        
+        const translations = {
+            vi: {
+                newChat: "Cuộc hội thoại mới",
+                recentChats: "Gần đây",
+                apiConfig: "Cấu hình API",
+                apiBaseUrl: "Đường dẫn API Base URL",
+                apiKeySelector: "API Key (Chọn nhanh)",
+                apiKeyInput: "API Key",
+                systemPrompt: "System Prompt",
+                streamResponse: "Phản hồi dạng Stream",
+                userWorkspace: "Admin Dashboard",
+                userWorkspaceSub: "Bấm để quản trị API",
+                emptyTitle: "Tôi có thể giúp gì cho bạn hôm nay?",
+                emptySub: "Trợ lý AI thế hệ mới được phát triển và tối ưu hóa bởi Trần Đăng Khoa Technology",
+                placeholderMsg: "Gửi tin nhắn cho AI... (hoặc thả tệp vào đây)",
+                modelSelectPlaceholder: "Chọn mô hình AI",
+                noModels: "Không có mô hình",
+                warningText: "AI có thể đưa ra câu trả lời chưa chính xác. Hãy kiểm tra các thông tin quan trọng.",
+                importTitle: "Nhập cuộc trò chuyện",
+                exportTitle: "Xuất cuộc trò chuyện",
+                deleteTitle: "Xóa cuộc trò chuyện",
+                editTitle: "Chỉnh sửa"
+            },
+            en: {
+                newChat: "New Chat",
+                recentChats: "Recent Chats",
+                apiConfig: "API Configuration",
+                apiBaseUrl: "API Base URL",
+                apiKeySelector: "API Key (Fast Select)",
+                apiKeyInput: "API Key",
+                systemPrompt: "System Prompt",
+                streamResponse: "Stream Responses",
+                userWorkspace: "Admin Dashboard",
+                userWorkspaceSub: "Click to manage API",
+                emptyTitle: "How can I help you today?",
+                emptySub: "Next-gen AI Assistant developed and optimized by Tran Dang Khoa Technology",
+                placeholderMsg: "Message the AI... (or drop files)",
+                modelSelectPlaceholder: "Select a model",
+                noModels: "No models",
+                warningText: "AI can make mistakes. Consider verifying important information.",
+                importTitle: "Import Chat File",
+                exportTitle: "Export Chat File",
+                deleteTitle: "Delete Chat Session",
+                editTitle: "Edit Message"
+            }
+        };
+
+        function applyLanguage(lang) {
+            const dict = translations[lang];
+            
+            // Set element texts
+            document.getElementById('text-newChat').innerText = dict.newChat;
+            document.getElementById('text-apiConfig').innerText = dict.apiConfig;
+            document.getElementById('text-apiBaseUrl').innerText = dict.apiBaseUrl;
+            document.getElementById('text-apiKeySelector').innerText = dict.apiKeySelector;
+            document.getElementById('text-apiKeyInput').innerText = dict.apiKeyInput;
+            document.getElementById('text-systemPrompt').innerText = dict.systemPrompt;
+            document.getElementById('text-streamResponse').innerText = dict.streamResponse;
+            document.getElementById('text-recentChats').innerText = dict.recentChats;
+            document.getElementById('text-userWorkspace').innerText = dict.userWorkspace;
+            document.getElementById('text-userWorkspaceSub').innerText = dict.userWorkspaceSub;
+            document.getElementById('text-emptyTitle').innerText = dict.emptyTitle;
+            document.getElementById('text-emptySub').innerText = dict.emptySub;
+            document.getElementById('text-warningText').innerText = dict.warningText;
+            
+            // Set placeholders
+            document.getElementById('messageInput').placeholder = dict.placeholderMsg;
+            document.getElementById('opt-modelSelectPlaceholder').innerText = dict.modelSelectPlaceholder;
+            
+            // Set title attributes
+            document.getElementById('btn-importChat').title = dict.importTitle;
+            
+            // Set lang switcher text
+            document.getElementById('langBtnText').innerText = lang.toUpperCase();
+        }
+
+        function toggleLanguage() {
+            currentLang = currentLang === "vi" ? "en" : "vi";
+            localStorage.setItem("currentLang", currentLang);
+            applyLanguage(currentLang);
+            
+            // Update default system prompt if it was untouched default
+            const currentPrompt = systemPromptInput.value.trim();
+            const defaultViPrompt = 'Bạn là 1 TDKT, một trợ lý AI thông minh được phát triển và tối ưu hóa bởi nhà phát triển Trần Đăng Khoa Technology. Bạn có khả năng lập trình xuất sắc, phân tích dữ liệu chuyên sâu, xử lý hình ảnh, video và giải quyết các vấn đề phức tạp một cách ngắn gọn, chính xác bằng Tiếng Việt.';
+            const defaultEnPrompt = 'You are TDKT, an intelligent AI assistant developed and optimized by developer Tran Dang Khoa Technology. You have outstanding programming capabilities, deep data analysis skills, processing of images and videos, and solve complex problems concisely and accurately in English.';
+            
+            if (currentPrompt === defaultViPrompt || currentPrompt === defaultEnPrompt || currentPrompt === "") {
+                const newPrompt = currentLang === "vi" ? defaultViPrompt : defaultEnPrompt;
+                systemPromptInput.value = newPrompt;
+                localStorage.setItem('systemPrompt', newPrompt);
+            }
+        }
+
         window.onload = () => {
             apiUrlInput.value = localStorage.getItem('apiUrl') || 'http://localhost:8000';
             apiKeyInput.value = localStorage.getItem('apiKey') || '';
-            systemPromptInput.value = localStorage.getItem('systemPrompt') || '';
+            
+            // Set Default System Prompt if empty
+            const defaultViPrompt = 'Bạn là 1 TDKT, một trợ lý AI thông minh được phát triển và tối ưu hóa bởi nhà phát triển Trần Đăng Khoa Technology. Bạn có khả năng lập trình xuất sắc, phân tích dữ liệu chuyên sâu, xử lý hình ảnh, video và giải quyết các vấn đề phức tạp một cách ngắn gọn, chính xác bằng Tiếng Việt.';
+            const defaultEnPrompt = 'You are TDKT, an intelligent AI assistant developed and optimized by developer Tran Dang Khoa Technology. You have outstanding programming capabilities, deep data analysis skills, processing of images and videos, and solve complex problems concisely and accurately in English.';
+            const defaultPrompt = currentLang === "vi" ? defaultViPrompt : defaultEnPrompt;
+            
+            systemPromptInput.value = localStorage.getItem('systemPrompt') || defaultPrompt;
+            if (!localStorage.getItem('systemPrompt')) {
+                localStorage.setItem('systemPrompt', defaultPrompt);
+            }
+            
             streamToggle.checked = localStorage.getItem('streamEnabled') !== 'false';
             
             isCanvasModeEnabled = localStorage.getItem('canvasEnabled') !== 'false';
@@ -2562,6 +2680,7 @@
             if (currentActiveCanvasFile) {
                 switchCanvasTab(currentActiveCanvasFile, shouldOpen);
             }
+            applyLanguage(currentLang);
         };
 
         apiUrlInput.addEventListener('input', () => {
