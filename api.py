@@ -9,6 +9,8 @@ import uuid
 import base64
 import json
 import os
+import mimetypes
+import urllib.parse
 
 import database as db
 from gemini_client.core import AsyncChatbot
@@ -101,8 +103,37 @@ def get_api_key_from_request(request: Request) -> str:
         
     raise HTTPException(status_code=401, detail="API Key missing from headers (Authorization Bearer or x-api-key)")
 
+def _try_jwt_auth(token: Optional[str]):
+    """Accept newer UI login tokens when the database layer supports them."""
+    if not token or not hasattr(db, "verify_jwt") or not hasattr(db, "get_user_by_id"):
+        return None
+    try:
+        payload = db.verify_jwt(token)
+        if not payload:
+            return None
+        user_id = payload.get("sub") or payload.get("user_id")
+        user = db.get_user_by_id(user_id)
+        if not user:
+            return None
+        role = user.get("role") if isinstance(user, dict) else (user[3] if len(user) > 3 else "user")
+        username = user.get("username") if isinstance(user, dict) else (user[1] if len(user) > 1 else "")
+        return {
+            "key": token,
+            "allowed_models": "all",
+            "role": role or "user",
+            "is_jwt": True,
+            "user_id": user_id,
+            "username": username,
+        }
+    except Exception:
+        return None
+
 def verify_api_key(request: Request):
     key = get_api_key_from_request(request)
+    jwt_auth = _try_jwt_auth(key)
+    if jwt_auth:
+        return jwt_auth
+
     details = db.get_api_key_details(key)
     if not details or not details[0]: 
         raise HTTPException(status_code=401, detail="Invalid or deactivated API Key")
@@ -117,10 +148,16 @@ def verify_api_key(request: Request):
             status_code=429, 
             detail="Rate limit exceeded. Please wait before making more requests."
         )
-    return {"key": key, "allowed_models": details[1], "role": details[2]}
+    return {"key": key, "allowed_models": details[1], "role": details[2], "is_jwt": False}
 
 def verify_admin_key(request: Request):
     key = get_api_key_from_request(request)
+    jwt_auth = _try_jwt_auth(key)
+    if jwt_auth:
+        if jwt_auth["role"] != "admin":
+            raise HTTPException(status_code=403, detail="API Key lacks 'admin' permissions required for this endpoint")
+        return jwt_auth
+
     details = db.get_api_key_details(key)
     if not details or not details[0]: 
         raise HTTPException(status_code=401, detail="Invalid or deactivated API Key")
@@ -131,7 +168,44 @@ def verify_admin_key(request: Request):
 
     if details[2] != 'admin':
         raise HTTPException(status_code=403, detail="API Key lacks 'admin' permissions required for this endpoint")
-    return {"key": key}
+    return {"key": key, "role": details[2], "is_jwt": False}
+
+def looks_like_pending_video_generation(text: str) -> bool:
+    if not text:
+        return False
+    text_l = text.lower()
+    markers = [
+        "generating your video",
+        "video is ready",
+        "check back",
+        "đang tạo video",
+        "dang tao video",
+        "hoàn tất video",
+        "video_gen_chip",
+        "generated_video_content",
+    ]
+    return any(marker in text_l for marker in markers)
+
+def proxy_generated_videos(raw_videos: List[dict], api_key_token: str) -> List[dict]:
+    proxied = []
+    seen = set()
+    for vid in raw_videos or []:
+        if not isinstance(vid, dict):
+            continue
+        item = dict(vid)
+        url = item.get("url")
+        if item.get("is_generated") and url:
+            item["url"] = (
+                "/v1/download?"
+                + urllib.parse.urlencode({"url": url, "view": "true", "token": api_key_token})
+            )
+        key = item.get("url") or item.get("video_id")
+        if key and key in seen:
+            continue
+        if key:
+            seen.add(key)
+        proxied.append(item)
+    return proxied
 
 # ==========================================
 # SECURE EXTENSION AUTO-HEALER ENDPOINTS
@@ -183,7 +257,6 @@ async def list_models(auth_data: dict = Depends(verify_api_key)):
 async def proxy_download(request: Request, url: str, view: bool = False, token: Optional[str] = None):
     """Proxies file downloads using the backend's active Gemini cookies. Supports inline viewing."""
     import re
-    import urllib.parse
     
     # 1. Flexible Authentication: Check Header first, then query param for browsers/iframes
     auth_header = request.headers.get("Authorization")
@@ -195,20 +268,38 @@ async def proxy_download(request: Request, url: str, view: bool = False, token: 
         
     if not api_key:
         raise HTTPException(status_code=401, detail="Not authenticated")
-        
-    details = db.get_api_key_details(api_key)
-    if not details or not details[0]: 
-        raise HTTPException(status_code=401, detail="Invalid or deactivated API Key")
-    
-    # Check expiry
-    if details[3] > 0 and time.time() > details[3]:
-        raise HTTPException(status_code=401, detail="API Key has expired")
+
+    jwt_auth = _try_jwt_auth(api_key)
+    if jwt_auth:
+        auth_data = jwt_auth
+    else:
+        details = db.get_api_key_details(api_key)
+        if not details or not details[0]:
+            raise HTTPException(status_code=401, detail="Invalid or deactivated API Key")
+        if details[3] > 0 and time.time() > details[3]:
+            raise HTTPException(status_code=401, detail="API Key has expired")
+        auth_data = {"key": api_key, "is_jwt": False}
         
     # 2. Security check to prevent open proxy abuse
-    if not url.startswith("https://contribution.usercontent.google.com") and not url.startswith("https://drive.google.com"):
+    parsed_url = urllib.parse.urlparse(url)
+    host = parsed_url.netloc.lower()
+    allowed_host = (
+        host in {
+            "contribution.usercontent.google.com",
+            "drive.google.com",
+            "lh3.googleusercontent.com",
+            "googleusercontent.com",
+            "gemini.google.com",
+        }
+        or host.endswith(".googleusercontent.com")
+    )
+    if parsed_url.scheme != "https" or not allowed_host:
         raise HTTPException(status_code=403, detail="Only authorized Google domains are allowed for proxying.")
 
-    cookies = db.get_cookies()
+    if auth_data.get("is_jwt") and auth_data.get("user_id") and hasattr(db, "get_user_cookies"):
+        cookies = db.get_user_cookies(auth_data["user_id"])
+    else:
+        cookies = db.get_cookies()
     if not cookies or not cookies[0]:
         raise HTTPException(status_code=500, detail="Gemini Cookies not set.")
     
@@ -221,23 +312,32 @@ async def proxy_download(request: Request, url: str, view: bool = False, token: 
     
     # Extract filename for headers
     match = re.search(r'filename=([^&]+)', url)
-    filename = urllib.parse.unquote(match.group(1)) if match else "document.pdf"
+    filename = urllib.parse.unquote(match.group(1)) if match else ("generated_video.mp4" if "download?c=" in url else "document.pdf")
+    media_type = mimetypes.guess_type(filename)[0]
+    if not media_type and "download?c=" in url:
+        media_type = "video/mp4"
+    media_type = media_type or "application/octet-stream"
     
     async def fetch_file():
         # NOTE: Purposely omitting Headers.GEMINI here because Google blocks it on this specific endpoint
         async with AsyncSession(cookies=cookie_dict, impersonate="chrome110") as session:
             response = await session.get(url, stream=True)
             if response.status_code != 200:
-                yield f"Error: Failed to download from Google. Status {response.status_code}".encode()
+                yield json.dumps({
+                    "error": f"Failed to download from Google. Status {response.status_code}"
+                }).encode()
                 return
             async for chunk in response.aiter_content():
                 yield chunk
 
     # If view=true, display in browser. If view=false, force download.
     disposition = "inline" if view else "attachment"
-    headers = {"Content-Disposition": f"{disposition}; filename=\"{filename}\""}
+    headers = {
+        "Content-Disposition": f"{disposition}; filename=\"{filename}\"",
+        "Accept-Ranges": "bytes",
+    }
 
-    return StreamingResponse(fetch_file(), media_type="application/pdf", headers=headers)
+    return StreamingResponse(fetch_file(), media_type=media_type, headers=headers)
 
 async def url_to_base64(url: str, cookies_dict: dict) -> str:
     from curl_cffi.requests import AsyncSession, Cookies
@@ -261,7 +361,10 @@ async def url_to_base64(url: str, cookies_dict: dict) -> str:
 
 @app.post("/v1/chat/completions")
 async def chat_completions(request: ChatCompletionRequest, auth_data: dict = Depends(verify_api_key)):
-    cookies = db.get_cookies()
+    if auth_data.get("is_jwt") and auth_data.get("user_id") and hasattr(db, "get_user_cookies"):
+        cookies = db.get_user_cookies(auth_data["user_id"])
+    else:
+        cookies = db.get_cookies()
     if not cookies or not cookies[0]:
         raise HTTPException(status_code=500, detail="Gemini Cookies not set. Admin must set them via Telegram.")
     
@@ -451,11 +554,21 @@ STRICT RULES:
             # System prompt changed - start fresh so AI fully adopts new persona
             db.update_api_key_session(api_key_token, None, None, None)
 
+        preexisting_generated_video_urls = set()
+        if bot.conversation_id and "video" in user_prompt_text.lower():
+            try:
+                existing_videos = await bot.list_conversation_generated_videos()
+                preexisting_generated_video_urls = {v.get("url") for v in existing_videos if v.get("url")}
+            except Exception as e:
+                print(f"Unable to preflight existing generated videos: {e}")
+
         if request.stream:
             async def stream_generator():
                 try:
                     cid, rid, chid = None, None, None
                     has_content = False
+                    pending_video_generation = False
+                    emitted_generated_video_urls = set()
                     
                     try:
                         async for result in bot.ask_stream(prompt, files=files_to_upload):
@@ -477,6 +590,10 @@ STRICT RULES:
                                 break
                             
                             chunk_text = result.get("chunk", "")
+                            result_content = result.get("content", "")
+                            if looks_like_pending_video_generation(chunk_text) or looks_like_pending_video_generation(result_content):
+                                pending_video_generation = True
+
                             cid = result.get("conversation_id")
                             rid = result.get("response_id")
                             chid = result.get("choice_id")
@@ -498,7 +615,11 @@ STRICT RULES:
                                             b64_url = img_url
                                         safe_imgs.append({"url": b64_url, "title": img_title})
                             
-                            safe_vids = result.get("videos", [])
+                            raw_vids = result.get("videos", [])
+                            for vid in raw_vids:
+                                if isinstance(vid, dict) and vid.get("is_generated") and vid.get("url"):
+                                    emitted_generated_video_urls.add(vid["url"])
+                            safe_vids = proxy_generated_videos(raw_vids, api_key_token)
                             safe_sources = result.get("sources", [])
                             safe_files = result.get("files", []) # EXPOSE EXTRACTED FILES TO STREAM
                             
@@ -525,6 +646,50 @@ STRICT RULES:
                                     "choices": [{"index": 0, "delta": delta_data, "finish_reason": None}]
                                 }
                                 yield f"data: {json.dumps(chunk_json)}\n\n"
+
+                        if pending_video_generation and cid and not emitted_generated_video_urls:
+                            wait_chunk = {
+                                "id": f"chatcmpl-{uuid.uuid4().hex}",
+                                "object": "chat.completion.chunk",
+                                "created": int(time.time()),
+                                "model": request.model,
+                                "choices": [{"index": 0, "delta": {"content": "\n\nĐang chờ Gemini hoàn tất video..."}, "finish_reason": None}]
+                            }
+                            yield f"data: {json.dumps(wait_chunk)}\n\n"
+
+                            wait_exclude = preexisting_generated_video_urls | emitted_generated_video_urls
+                            generated_videos = await bot.wait_for_generated_videos(
+                                timeout_seconds=300,
+                                poll_interval=5,
+                                exclude_urls=wait_exclude,
+                            )
+                            if generated_videos:
+                                emitted_generated_video_urls.update(v.get("url") for v in generated_videos if v.get("url"))
+                                has_content = True
+                                video_chunk = {
+                                    "id": f"chatcmpl-{uuid.uuid4().hex}",
+                                    "object": "chat.completion.chunk",
+                                    "created": int(time.time()),
+                                    "model": request.model,
+                                    "choices": [{
+                                        "index": 0,
+                                        "delta": {
+                                            "content": "\n\nVideo của bạn đã sẵn sàng!",
+                                            "videos": proxy_generated_videos(generated_videos, api_key_token),
+                                        },
+                                        "finish_reason": None
+                                    }]
+                                }
+                                yield f"data: {json.dumps(video_chunk)}\n\n"
+                            else:
+                                timeout_chunk = {
+                                    "id": f"chatcmpl-{uuid.uuid4().hex}",
+                                    "object": "chat.completion.chunk",
+                                    "created": int(time.time()),
+                                    "model": request.model,
+                                    "choices": [{"index": 0, "delta": {"content": "\n\nGemini vẫn chưa trả URL video sau thời gian chờ. Bạn có thể thử lại sau."}, "finish_reason": None}]
+                                }
+                                yield f"data: {json.dumps(timeout_chunk)}\n\n"
                                 
                     except Exception as stream_e:
                         # Catch exceptions that occur INSIDE the async generator and bypass the outer try/except
@@ -627,7 +792,20 @@ STRICT RULES:
                             b64_url = img_url
                         safe_imgs.append({"url": b64_url, "title": img_title})
 
-            safe_vids = response.get("videos", [])
+            raw_vids = response.get("videos", [])
+            safe_vids = proxy_generated_videos(raw_vids, api_key_token)
+            if looks_like_pending_video_generation(final_content) and not any(v.get("is_generated") for v in raw_vids if isinstance(v, dict)):
+                generated_videos = await bot.wait_for_generated_videos(
+                    timeout_seconds=300,
+                    poll_interval=5,
+                    exclude_urls=preexisting_generated_video_urls,
+                )
+                if generated_videos:
+                    final_content = (final_content + "\n\nVideo của bạn đã sẵn sàng!").strip()
+                    safe_vids.extend(proxy_generated_videos(generated_videos, api_key_token))
+                else:
+                    final_content = (final_content + "\n\nGemini vẫn chưa trả URL video sau thời gian chờ. Bạn có thể thử lại sau.").strip()
+
             safe_sources = response.get("sources", [])
             safe_files = response.get("files", []) # EXPOSE EXTRACTED FILES
 

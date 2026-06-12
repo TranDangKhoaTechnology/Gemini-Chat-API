@@ -21,9 +21,10 @@ if __name__ == "__main__":
     print("Initializing Database...")
     db.init_db()
 
-    # 3. Always synchronize cookies from cookies.json into the DB on startup if it exists!
-    # This ensures that whenever test.py works, main.py will immediately use the exact same cookies.
-    if os.path.exists("cookies.json"):
+    # 3. Only bootstrap cookies from cookies.json when the DB is empty.
+    # Avoid overwriting fresh cookies saved by the extension/admin API with an old file.
+    cookies = db.get_cookies()
+    if (not cookies or not cookies[0]) and os.path.exists("cookies.json"):
         try:
             import json
             with open("cookies.json", "r", encoding="utf-8") as f:

@@ -16,6 +16,8 @@ import re
 import string
 import mimetypes
 import base64
+import html
+import uuid
 import urllib.parse
 from pathlib import Path
 from datetime import datetime
@@ -44,6 +46,11 @@ YOUTUBE_RE_1 = re.compile(r'!?\[[^\]]*\]\((?:https?://)?(?:[^)]*?)googleusercont
 YOUTUBE_RE_2 = re.compile(r'(?:https?://)?(?:[^)\s]*?)googleusercontent\.com/youtube_content/\S+')
 IMAGE_RE_1 = re.compile(r'!?\[[^\]]*\]\((?:https?://)?(?:[^)]*?)googleusercontent\.com/image_(?:collection|generation_content)/[^)]+\)')
 IMAGE_RE_2 = re.compile(r'(?:https?://)?(?:[^)\s]*?)googleusercontent\.com/image_(?:collection|generation_content)/\S+')
+VIDEO_CHIP_RE_1 = re.compile(r'!?\[[^\]]*\]\((?:https?://)?(?:[^)]*?)googleusercontent\.com/video_gen_chip/[^)]+\)')
+VIDEO_CHIP_RE_2 = re.compile(r'(?:https?://)?(?:[^)\s]*?)googleusercontent\.com/video_gen_chip/\S+')
+GENERATED_VIDEO_RE_1 = re.compile(r'!?\[[^\]]*\]\((?:https?://)?(?:[^)]*?)googleusercontent\.com/generated_video_content/[^)]+\)')
+GENERATED_VIDEO_RE_2 = re.compile(r'(?:https?://)?(?:[^)\s]*?)googleusercontent\.com/generated_video_content/\S+')
+GEMINI_DOWNLOAD_RE = re.compile(r'(?:https://(?:contribution\.usercontent\.google\.com|gemini\.google\.com))?(?:/[^\s"\'<>\\)]*)?download\?c=[^\s"\'<>\\)]+')
 IMAGE_URL_RE = re.compile(r'(https?://[^\s]+\.(?:jpg|jpeg|png|gif|webp))')
 B64_EXTREME_RE = re.compile(b'[\x20-\x7e\n\r]{30,}')
 
@@ -143,6 +150,63 @@ def _fast_extract_thought(body, main_content=""):
                    if isinstance(val[0], list) and len(val[0]) > 0 and isinstance(val[0][0], str): return val[0][0]
     return ""
 
+def _strip_internal_media_chips(content: str) -> str:
+    """Remove Gemini's internal media chip URLs from assistant text."""
+    if not content:
+        return ""
+    for pattern in (
+        YOUTUBE_RE_1, YOUTUBE_RE_2,
+        IMAGE_RE_1, IMAGE_RE_2,
+        VIDEO_CHIP_RE_1, VIDEO_CHIP_RE_2,
+        GENERATED_VIDEO_RE_1, GENERATED_VIDEO_RE_2,
+    ):
+        content = pattern.sub('', content)
+    return content.strip()
+
+def _normalize_gemini_download_url(url: str) -> str:
+    if not url:
+        return ""
+    url = html.unescape(str(url))
+    url = (
+        url.replace("\\u003d", "=")
+           .replace("\\u0026", "&")
+           .replace("\\/", "/")
+           .strip(" \t\r\n\"'<>),;")
+    )
+    if url.startswith("//"):
+        url = "https:" + url
+    elif url.startswith("/download?"):
+        url = "https://contribution.usercontent.google.com" + url
+    elif url.startswith("download?"):
+        url = "https://contribution.usercontent.google.com/" + url
+    return url
+
+def _is_video_download_url(url: str) -> bool:
+    parsed = urllib.parse.urlparse(url)
+    params = urllib.parse.parse_qs(parsed.query)
+    filenames = params.get("filename") or params.get("name") or []
+    filename = filenames[0].lower() if filenames else ""
+    return filename.endswith((".mp4", ".webm", ".ogg", ".mov")) or ("download?c=" in url and not filename)
+
+def _extract_gemini_download_videos(text: str) -> List[dict]:
+    videos = []
+    seen = set()
+    if not text:
+        return videos
+    normalized = _normalize_gemini_download_url(text)
+    for match in GEMINI_DOWNLOAD_RE.finditer(normalized):
+        url = _normalize_gemini_download_url(match.group(0))
+        if not url or url in seen or not _is_video_download_url(url):
+            continue
+        seen.add(url)
+        videos.append({
+            "video_id": "gen-" + uuid.uuid5(uuid.NAMESPACE_URL, url).hex,
+            "title": "Generated Video",
+            "url": url,
+            "is_generated": True,
+        })
+    return videos
+
 def _fast_extract_media(body):
     """
     O(N) Single-pass stack-based iterative traverser.
@@ -194,16 +258,32 @@ def _fast_extract_media(body):
                     stack.append(val)
                     
         elif isinstance(curr, str):
+            if "download?c=" in curr:
+                for vid in _extract_gemini_download_videos(curr):
+                    vid_key = vid["url"]
+                    if vid_key not in seen_vid:
+                        seen_vid.add(vid_key)
+                        videos.append(vid)
             if curr.startswith(("https://lh3.googleusercontent.com/", "https://encrypted-tbn")):
                 if curr not in seen_img:
                     seen_img.add(curr)
                     images_raw.append(curr)
             elif "contribution.usercontent.google.com/download" in curr:
-                if curr not in seen_file:
-                    seen_file.add(curr)
-                    match = re.search(r'filename=([^&]+)', curr)
+                url = _normalize_gemini_download_url(curr)
+                if _is_video_download_url(url):
+                    if url not in seen_vid:
+                        seen_vid.add(url)
+                        videos.append({
+                            "video_id": "gen-" + uuid.uuid5(uuid.NAMESPACE_URL, url).hex,
+                            "title": "Generated Video",
+                            "url": url,
+                            "is_generated": True,
+                        })
+                elif url not in seen_file:
+                    seen_file.add(url)
+                    match = re.search(r'filename=([^&]+)', url)
                     filename = urllib.parse.unquote(match.group(1)) if match else "generated_document.pdf"
-                    files.append({"filename": filename, "download_url": curr})
+                    files.append({"filename": filename, "download_url": url})
 
     return images_raw, videos, sources, files
 
@@ -351,8 +431,14 @@ class AsyncChatbot:
             if "Sign in to continue" in resp.text or "accounts.google.com" in str(resp.url):
                 raise PermissionError("Authentication failed. Cookies might be invalid or expired.")
 
-            snlm0e_match = re.search(r"""["']SNlM0e["']\s*:\s*["'](.*?)["']""", resp.text)
-            pi9wob_match = re.search(r'"PI9WOb":"(.*?)"', resp.text)
+            snlm0e_match = (
+                re.search(r"""["']SNlM0e["']\s*:\s*["'](.*?)["']""", resp.text)
+                or re.search(r"""SNlM0e\\?"?\s*:\s*\\?"([^"\\]+)""", resp.text)
+            )
+            pi9wob_match = (
+                re.search(r"""["']PI9WOb["']\s*:\s*["'](.*?)["']""", resp.text)
+                or re.search(r"""PI9WOb\\?"?\s*:\s*\\?"([^"\\]+)""", resp.text)
+            )
 
             if not pi9wob_match: raise ValueError("PI9WOb token not found")
             self.PI9WOb = pi9wob_match.group(1)
@@ -447,10 +533,7 @@ class AsyncChatbot:
                                     images_raw, videos, sources, ext_files = _fast_extract_media(body)
                                     images = [Image(url=u, title=f"Image {i+1}", alt="", proxy=self.proxies_dict, impersonate=self.impersonate) for i, u in enumerate(images_raw)]
 
-                                    content = YOUTUBE_RE_1.sub('', content)
-                                    content = YOUTUBE_RE_2.sub('', content)
-                                    content = IMAGE_RE_1.sub('', content)
-                                    content = IMAGE_RE_2.sub('', content)
+                                    content = _strip_internal_media_chips(content)
                                     
                                     if not images and content:
                                         for i, url in enumerate(IMAGE_URL_RE.findall(content.lower())):
@@ -502,6 +585,95 @@ class AsyncChatbot:
 
         except Exception as e:
             yield {"content": f"Streaming error: {e}", "chunk": f"Streaming error: {e}", "error": True}
+
+    async def wait_for_generated_videos(
+        self,
+        timeout_seconds: int = 240,
+        poll_interval: int = 5,
+        exclude_urls: Optional[set] = None,
+    ) -> List[dict]:
+        if not self.conversation_id:
+            return []
+        seen = set(exclude_urls or set())
+        deadline = asyncio.get_running_loop().time() + timeout_seconds
+
+        while asyncio.get_running_loop().time() < deadline:
+            videos = await self.list_conversation_generated_videos()
+            fresh = [v for v in videos if v.get("url") and v.get("url") not in seen]
+            if fresh:
+                return fresh
+            await asyncio.sleep(poll_interval)
+        return []
+
+    async def list_conversation_generated_videos(self) -> List[dict]:
+        if not self.conversation_id:
+            return []
+
+        conv_id = self.conversation_id
+        app_id = conv_id[2:] if conv_id.startswith("c_") else conv_id
+        rpc_id = "hNvQHb"
+        payload = [f"c_{app_id}", 20, None]
+        data = {
+            "f.req": json.dumps(
+                [[[rpc_id, json.dumps(payload, separators=(",", ":")), None, "generic"]]],
+                separators=(",", ":"),
+            ),
+            "at": self.SNlM0e,
+        }
+        params = {
+            "rpcids": rpc_id,
+            "source-path": f"/app/{app_id}",
+            "bl": "boq_assistant-bard-web-server_20240625.13_p0",
+            "_reqid": str(self._reqid),
+            "rt": "c",
+        }
+
+        resp = await self.session.post(
+            "https://gemini.google.com/_/BardChatUi/data/batchexecute",
+            params=params,
+            data=data,
+            timeout=min(self.timeout, 30),
+        )
+        resp.raise_for_status()
+
+        videos = []
+        seen = set()
+
+        def add_video(video: dict):
+            url = _normalize_gemini_download_url(video.get("url", ""))
+            if not url or url in seen or not _is_video_download_url(url):
+                return
+            seen.add(url)
+            videos.append({
+                "video_id": video.get("video_id") or ("gen-" + uuid.uuid5(uuid.NAMESPACE_URL, url).hex),
+                "title": video.get("title") or "Generated Video",
+                "url": url,
+                "is_generated": True,
+            })
+
+        for video in _extract_gemini_download_videos(resp.text):
+            add_video(video)
+
+        for line in resp.text.splitlines():
+            if not line or line == ")]}'" or not line.startswith("["):
+                continue
+            try:
+                response_json = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+
+            for part in response_json:
+                if isinstance(part, list) and len(part) > 2 and part[0] == "wrb.fr" and isinstance(part[2], str):
+                    try:
+                        body = json.loads(part[2])
+                    except json.JSONDecodeError:
+                        continue
+                    _, nested_videos, _, _ = _fast_extract_media(body)
+                    for video in nested_videos:
+                        if video.get("is_generated"):
+                            add_video(video)
+
+        return videos
 
     async def ask(self, message: str, files: Optional[List[Union[bytes, str, Path]]] = None, attachment: Optional[Union[bytes, str, Path]] = None, image: Optional[Union[bytes, str, Path]] = None) -> dict:
         if self.SNlM0e is None: raise RuntimeError("AsyncChatbot not properly initialized. Call AsyncChatbot.create()")
@@ -577,10 +749,7 @@ class AsyncChatbot:
                 final_content = ""
                 if current_thought: final_content += f"<think>\n{current_thought}\n</think>\n\n"
                 
-                content = YOUTUBE_RE_1.sub('', content)
-                content = YOUTUBE_RE_2.sub('', content)
-                content = IMAGE_RE_1.sub('', content)
-                content = IMAGE_RE_2.sub('', content)
+                content = _strip_internal_media_chips(content)
                 final_content += content
 
                 conversation_id = body[1][0] if len(body) > 1 and len(body[1]) > 0 else self.conversation_id

@@ -994,6 +994,7 @@
 
             if (apiVideos) {
                 apiVideos.forEach(vid => {
+                    if (vid && vid.is_generated) return;
                     if (vid.video_id) {
                         videoMap.set(vid.video_id, {
                             id: vid.video_id,
@@ -1101,6 +1102,48 @@
 
             html += `</div></div>`;
             ytContainer.innerHTML = html;
+        }
+
+        function generateGeneratedVideoHTML(videos = []) {
+            const generatedVideos = (videos || []).filter(v => v && v.is_generated && v.url);
+            if (generatedVideos.length === 0) return '';
+
+            const esc = (value = '') => String(value).replace(/[&<>"']/g, ch => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[ch]));
+
+            const toDownloadUrl = (rawUrl) => {
+                try {
+                    const parsed = new URL(rawUrl, window.location.origin);
+                    parsed.searchParams.set('view', 'false');
+                    return rawUrl.startsWith('http') ? parsed.toString() : `${parsed.pathname}${parsed.search}${parsed.hash}`;
+                } catch (e) {
+                    return String(rawUrl).replace('view=true', 'view=false');
+                }
+            };
+
+            return generatedVideos.map((vid, index) => {
+                const playbackUrl = esc(vid.url);
+                const downloadUrl = esc(toDownloadUrl(vid.url));
+                const title = esc(vid.title || `Generated Video ${index + 1}`);
+                return `
+                    <div class="generated-video-card mt-4 w-full max-w-2xl overflow-hidden rounded-xl border border-gray-700 bg-[#111827] shadow-lg">
+                        <video class="w-full bg-black aspect-video" controls preload="metadata" playsinline>
+                            <source src="${playbackUrl}" type="video/mp4">
+                        </video>
+                        <div class="flex items-center justify-between gap-3 px-3 py-2 border-t border-gray-700">
+                            <span class="text-xs font-medium text-gray-300 truncate">${title}</span>
+                            <a href="${downloadUrl}" download class="shrink-0 text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2">
+                                <i class="ph ph-download-simple"></i> Tải về
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         function applyMonacoEditors(container) {
@@ -2597,31 +2640,43 @@
 
         function applyLanguage(lang) {
             const dict = translations[lang];
+            const setText = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = value;
+            };
+            const setPlaceholder = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.placeholder = value;
+            };
+            const setTitle = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.title = value;
+            };
             
             // Set element texts
-            document.getElementById('text-newChat').innerText = dict.newChat;
-            document.getElementById('text-apiConfig').innerText = dict.apiConfig;
-            document.getElementById('text-apiBaseUrl').innerText = dict.apiBaseUrl;
-            document.getElementById('text-apiKeySelector').innerText = dict.apiKeySelector;
-            document.getElementById('text-apiKeyInput').innerText = dict.apiKeyInput;
-            document.getElementById('text-systemPrompt').innerText = dict.systemPrompt;
-            document.getElementById('text-streamResponse').innerText = dict.streamResponse;
-            document.getElementById('text-recentChats').innerText = dict.recentChats;
-            document.getElementById('text-userWorkspace').innerText = dict.userWorkspace;
-            document.getElementById('text-userWorkspaceSub').innerText = dict.userWorkspaceSub;
-            document.getElementById('text-emptyTitle').innerText = dict.emptyTitle;
-            document.getElementById('text-emptySub').innerText = dict.emptySub;
-            document.getElementById('text-warningText').innerText = dict.warningText;
+            setText('text-newChat', dict.newChat);
+            setText('text-apiConfig', dict.apiConfig);
+            setText('text-apiBaseUrl', dict.apiBaseUrl);
+            setText('text-apiKeySelector', dict.apiKeySelector);
+            setText('text-apiKeyInput', dict.apiKeyInput);
+            setText('text-systemPrompt', dict.systemPrompt);
+            setText('text-streamResponse', dict.streamResponse);
+            setText('text-recentChats', dict.recentChats);
+            setText('text-userWorkspace', dict.userWorkspace);
+            setText('text-userWorkspaceSub', dict.userWorkspaceSub);
+            setText('text-emptyTitle', dict.emptyTitle);
+            setText('text-emptySub', dict.emptySub);
+            setText('text-warningText', dict.warningText);
             
             // Set placeholders
-            document.getElementById('messageInput').placeholder = dict.placeholderMsg;
-            document.getElementById('opt-modelSelectPlaceholder').innerText = dict.modelSelectPlaceholder;
+            setPlaceholder('messageInput', dict.placeholderMsg);
+            setText('opt-modelSelectPlaceholder', dict.modelSelectPlaceholder);
             
             // Set title attributes
-            document.getElementById('btn-importChat').title = dict.importTitle;
+            setTitle('btn-importChat', dict.importTitle);
             
             // Set lang switcher text
-            document.getElementById('langBtnText').innerText = lang.toUpperCase();
+            setText('langBtnText', lang.toUpperCase());
         }
 
         function toggleLanguage() {
@@ -3309,7 +3364,12 @@
                         nodeData.contentNode.insertAdjacentHTML('beforeend', carouselHTML);
                     }
                     
-                    updateYouTubeContainer(nodeData.youtubeContainer, nodeData.contentNode, msg.videos);
+                    const generatedVideos = (msg.videos || []).filter(v => v && v.is_generated);
+                    const youtubeVideos = (msg.videos || []).filter(v => !v || !v.is_generated);
+                    if (generatedVideos.length > 0) {
+                        nodeData.contentNode.insertAdjacentHTML('beforeend', generateGeneratedVideoHTML(generatedVideos));
+                    }
+                    updateYouTubeContainer(nodeData.youtubeContainer, nodeData.contentNode, youtubeVideos);
                 }
                 
                 chatBox.appendChild(nodeData.wrapper);
@@ -3567,7 +3627,13 @@
                                 streamNode.contentNode.innerHTML += generateFileCardHTML(assistantFiles);
                             }
 
-                            updateYouTubeContainer(streamNode.youtubeContainer, streamNode.contentNode, assistantVideos);
+                            const generatedVideos = (assistantVideos || []).filter(v => v && v.is_generated);
+                            const youtubeVideos = (assistantVideos || []).filter(v => !v || !v.is_generated);
+                            if (generatedVideos.length > 0) {
+                                streamNode.contentNode.innerHTML += generateGeneratedVideoHTML(generatedVideos);
+                            }
+
+                            updateYouTubeContainer(streamNode.youtubeContainer, streamNode.contentNode, youtubeVideos);
                             
                             if (autoScroll) {
                                 requestAnimationFrame(() => {
