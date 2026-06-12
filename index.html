@@ -2673,6 +2673,16 @@
             
             const cachedModels = JSON.parse(localStorage.getItem('cachedModels')) || [];
             if (cachedModels.length > 0) populateModelDropdown(cachedModels, localStorage.getItem('selectedModel'));
+            
+            // If no API key set, try to auto-fill from saved keys
+            if (!apiKeyInput.value) {
+                const savedKeys = JSON.parse(localStorage.getItem('saved_user_keys') || '[]');
+                if (savedKeys.length > 0) {
+                    apiKeyInput.value = savedKeys[0].key;
+                    localStorage.setItem('apiKey', savedKeys[0].key);
+                }
+            }
+            
             if (apiKeyInput.value) fetchModels(true); 
             fetchAutoApiKeys(); 
             

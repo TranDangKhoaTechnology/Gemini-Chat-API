@@ -922,6 +922,21 @@ async def serve_dashboard():
         html_content = f.read()
     return HTMLResponse(content=html_content)
 
+@app.get("/favicon.ico")
+async def serve_favicon():
+    """Serve a simple inline SVG favicon to prevent 404 errors."""
+    from fastapi.responses import Response
+    # A simple star SVG favicon
+    svg_content = b"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+      <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#6366f1"/>
+        <stop offset="100%" stop-color="#8b5cf6"/>
+      </linearGradient></defs>
+      <circle cx="50" cy="50" r="50" fill="url(#g)"/>
+      <text y=".9em" font-size="60" x="18" fill="white">N</text>
+    </svg>"""
+    return Response(content=svg_content, media_type="image/svg+xml")
+
 @app.get("/chat", response_class=HTMLResponse)
 async def serve_chat():
     if not os.path.exists("index.html"):
