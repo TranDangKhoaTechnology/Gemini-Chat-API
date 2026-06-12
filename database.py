@@ -4,6 +4,7 @@ import time
 import json
 import os
 import stat
+from typing import Optional
 
 DATA_DIR = "data"
 DB_PATH = os.path.join(DATA_DIR, "database.db")
@@ -330,5 +331,17 @@ def update_admin_api_key(old_key, new_key):
         return success, "Đổi khóa Admin thành công." if success else "Không thể cập nhật khóa."
     except Exception as e:
         return False, f"Lỗi cơ sở dữ liệu: {str(e)}"
+    finally:
+        conn.close()
+
+def get_api_key_name(key: str) -> Optional[str]:
+    conn = _get_conn()
+    c = conn.cursor()
+    try:
+        c.execute("SELECT name FROM api_keys WHERE key = ?", (key,))
+        row = c.fetchone()
+        return row[0] if row else None
+    except Exception:
+        return None
     finally:
         conn.close()

@@ -986,3 +986,13 @@ async def change_admin_key(request: ChangeAdminKeyRequest, admin_auth = Depends(
     if not success:
         raise HTTPException(status_code=400, detail=msg)
     return {"status": "success", "message": msg}
+
+@app.get("/v1/key_info")
+async def get_key_info(auth_data: dict = Depends(verify_api_key)):
+    key_name = db.get_api_key_name(auth_data["key"]) or "Unknown User"
+    return {
+        "key": auth_data["key"],
+        "name": key_name,
+        "role": auth_data["role"],
+        "allowed_models": auth_data["allowed_models"]
+    }

@@ -729,26 +729,63 @@
                 <div class="panel-title">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
                     Đồng bộ hoá Google Cookies
+                    <!-- Mode Toggle -->
+                    <div id="cookie-mode-toggle" style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:400;">
+                        <span id="toggle-label-fields" style="color:var(--accent-primary);font-weight:600;">Nhập từng trường</span>
+                        <button type="button" id="cookie-mode-btn" onclick="toggleCookieMode()"
+                            style="position:relative;width:42px;height:22px;border-radius:11px;border:none;cursor:pointer;background:var(--accent-primary);transition:background 0.3s;outline:none;padding:0;">
+                            <span id="cookie-mode-knob" style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left 0.25s cubic-bezier(.4,0,.2,1);"></span>
+                        </button>
+                        <span id="toggle-label-raw" style="color:var(--text-secondary);">Dán raw text</span>
+                    </div>
                 </div>
                 
-                <div class="instructions-box">
+                <!-- Instructions (dynamic) -->
+                <div id="cookie-instructions-fields" class="instructions-box">
                     <strong>Cách lấy Cookies nhanh:</strong>
                     <ol>
                         <li>Truy cập <a href="https://gemini.google.com" target="_blank" style="color: var(--accent-primary); text-decoration: none; font-weight: 500;">gemini.google.com</a> và đăng nhập.</li>
-                        <li>F12 -> Application -> Cookies -> Chọn domain google.com.</li>
-                        <li>Sao chép giá trị của <code>__Secure-1PSID</code> và <code>__Secure-1PSIDTS</code>.</li>
+                        <li>F12 → Application → Cookies → Chọn domain <code>google.com</code>.</li>
+                        <li>Sao chép giá trị của <code>__Secure-1PSID</code> và <code>__Secure-1PSIDTS</code> rồi dán vào bên dưới.</li>
+                    </ol>
+                </div>
+                <div id="cookie-instructions-raw" class="instructions-box" style="display:none;">
+                    <strong>Dán toàn bộ cookie text:</strong>
+                    <ol>
+                        <li>Truy cập <a href="https://gemini.google.com" target="_blank" style="color: var(--accent-primary); text-decoration: none; font-weight: 500;">gemini.google.com</a> và đăng nhập.</li>
+                        <li>F12 → Application → Cookies → Click chuột phải vào bất kỳ cookie → <strong>Copy all as cURL</strong> <em>hoặc</em> chỉ cần copy toàn bộ nội dung cột Cookies.</li>
+                        <li>Dán vào ô bên dưới – hệ thống sẽ <strong>tự động trích xuất</strong> <code>__Secure-1PSID</code> và <code>__Secure-1PSIDTS</code>.</li>
                     </ol>
                 </div>
 
                 <form id="cookie-sync-form" onsubmit="handleCookieUpdate(event)">
-                    <div class="input-group">
-                        <label for="cookie-psid">__Secure-1PSID</label>
-                        <input type="text" id="cookie-psid" class="input-field" placeholder="Nhập giá trị cookie __Secure-1PSID..." required>
+                    <!-- Mode 1: Individual fields -->
+                    <div id="cookie-fields-mode">
+                        <div class="input-group">
+                            <label for="cookie-psid">__Secure-1PSID</label>
+                            <input type="text" id="cookie-psid" class="input-field" placeholder="Nhập giá trị cookie __Secure-1PSID...">
+                        </div>
+                        <div class="input-group">
+                            <label for="cookie-psidts">__Secure-1PSIDTS</label>
+                            <input type="text" id="cookie-psidts" class="input-field" placeholder="Nhập giá trị cookie __Secure-1PSIDTS...">
+                        </div>
                     </div>
-                    
-                    <div class="input-group">
-                        <label for="cookie-psidts">__Secure-1PSIDTS</label>
-                        <input type="text" id="cookie-psidts" class="input-field" placeholder="Nhập giá trị cookie __Secure-1PSIDTS..." required>
+
+                    <!-- Mode 2: Raw text paste -->
+                    <div id="cookie-raw-mode" style="display:none;">
+                        <div class="input-group">
+                            <label for="cookie-raw-text">Dán toàn bộ Cookie text</label>
+                            <textarea id="cookie-raw-text" class="input-field" rows="6"
+                                style="font-family:monospace;font-size:12px;resize:vertical;min-height:110px;"
+                                placeholder="Dán chuỗi cookie tại đây...&#10;Ví dụ: __Secure-1PSID=abc123; __Secure-1PSIDTS=xyz456; ...&#10;&#10;Hoặc dán cả dòng cURL header: -H 'cookie: ...'" oninput="previewParsedCookies()"></textarea>
+                        </div>
+                        <!-- Live preview of parsed values -->
+                        <div id="cookie-parse-preview" style="display:none;margin-top:-8px;padding:10px 14px;border-radius:8px;background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.25);font-size:12px;font-family:monospace;color:var(--text-secondary);line-height:1.7;">
+                            <div style="color:var(--accent-success);font-weight:600;margin-bottom:4px;">✓ Phát hiện cookies:</div>
+                            <div id="preview-psid"></div>
+                            <div id="preview-psidts"></div>
+                        </div>
+                        <div id="cookie-parse-error" style="display:none;margin-top:-8px;padding:8px 14px;border-radius:8px;background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.25);font-size:12px;color:#f87171;"></div>
                     </div>
 
                     <button type="submit" id="cookie-submit-btn" class="btn" style="background: linear-gradient(135deg, var(--accent-success) 0%, #059669 100%); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3)">
@@ -788,7 +825,13 @@
 
                     <div class="input-group">
                         <label for="key-models">Các mô hình được truy cập</label>
-                        <input type="text" id="key-models" class="input-field" value="all" placeholder="Nhập 'all' hoặc danh sách ngăn cách bởi dấu phẩy">
+                        <select id="key-models" class="input-field" style="background-color: #0f172a;">
+                            <option value="all">Tất cả mô hình (all)</option>
+                            <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+                            <option value="gemini-3.5-pro">gemini-3.5-pro</option>
+                            <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite</option>
+                            <option value="gemini-3.5-flash,gemini-3.1-flash-lite">gemini-3.5-flash & gemini-3.1-flash-lite</option>
+                        </select>
                     </div>
 
                     <button type="submit" id="key-submit-btn" class="btn">
@@ -1231,14 +1274,129 @@
             });
         }
 
+        // ============================================================
+        // Cookie Mode Toggle
+        // ============================================================
+        let cookieRawMode = false;
+
+        function toggleCookieMode() {
+            cookieRawMode = !cookieRawMode;
+            const knob = document.getElementById('cookie-mode-knob');
+            const btn  = document.getElementById('cookie-mode-btn');
+            const lblFields = document.getElementById('toggle-label-fields');
+            const lblRaw    = document.getElementById('toggle-label-raw');
+            const fieldsDiv = document.getElementById('cookie-fields-mode');
+            const rawDiv    = document.getElementById('cookie-raw-mode');
+            const instrFields = document.getElementById('cookie-instructions-fields');
+            const instrRaw    = document.getElementById('cookie-instructions-raw');
+
+            if (cookieRawMode) {
+                knob.style.left = '23px';
+                btn.style.background = 'var(--accent-warning, #f59e0b)';
+                lblFields.style.color = 'var(--text-secondary)';
+                lblFields.style.fontWeight = '400';
+                lblRaw.style.color = 'var(--accent-warning, #f59e0b)';
+                lblRaw.style.fontWeight = '600';
+                fieldsDiv.style.display = 'none';
+                rawDiv.style.display = '';
+                instrFields.style.display = 'none';
+                instrRaw.style.display = '';
+            } else {
+                knob.style.left = '3px';
+                btn.style.background = 'var(--accent-primary)';
+                lblFields.style.color = 'var(--accent-primary)';
+                lblFields.style.fontWeight = '600';
+                lblRaw.style.color = 'var(--text-secondary)';
+                lblRaw.style.fontWeight = '400';
+                fieldsDiv.style.display = '';
+                rawDiv.style.display = 'none';
+                instrFields.style.display = '';
+                instrRaw.style.display = 'none';
+            }
+        }
+
+        // Parse raw cookie string → extract PSID & PSIDTS
+        function parseRawCookies(rawText) {
+            // Support cURL -H 'cookie: ...' format or plain 'key=value; key=value'
+            let cookieStr = rawText.trim();
+            // Strip cURL header wrapper if present
+            const curlMatch = cookieStr.match(/['"]?[Cc]ookie:\s*([^'"\n]+)['"]?/);
+            if (curlMatch) cookieStr = curlMatch[1].trim();
+
+            const result = { psid: null, psidts: null };
+            // Split on semicolons, handle both name=value and JSON array [{name,value}]
+            const pairs = cookieStr.split(/;\s*/);
+            for (const pair of pairs) {
+                const eqIdx = pair.indexOf('=');
+                if (eqIdx < 0) continue;
+                const name  = pair.slice(0, eqIdx).trim();
+                const value = pair.slice(eqIdx + 1).trim();
+                if (name === '__Secure-1PSID')   result.psid   = value;
+                if (name === '__Secure-1PSIDTS') result.psidts = value;
+            }
+            return result;
+        }
+
+        // Live preview while typing in raw textarea
+        function previewParsedCookies() {
+            const raw = document.getElementById('cookie-raw-text').value;
+            const preview = document.getElementById('cookie-parse-preview');
+            const errBox  = document.getElementById('cookie-parse-error');
+            const previewPsid   = document.getElementById('preview-psid');
+            const previewPsidts = document.getElementById('preview-psidts');
+
+            if (!raw.trim()) {
+                preview.style.display = 'none';
+                errBox.style.display  = 'none';
+                return;
+            }
+
+            const parsed = parseRawCookies(raw);
+            if (parsed.psid || parsed.psidts) {
+                preview.style.display = '';
+                errBox.style.display  = 'none';
+                previewPsid.textContent   = parsed.psid   ? `__Secure-1PSID   = ${parsed.psid.slice(0,30)}…` : '__Secure-1PSID   = (chưa tìm thấy)';
+                previewPsidts.textContent = parsed.psidts ? `__Secure-1PSIDTS = ${parsed.psidts.slice(0,30)}…` : '__Secure-1PSIDTS = (chưa tìm thấy)';
+                if (!parsed.psid || !parsed.psidts) {
+                    preview.style.borderColor = 'rgba(245,158,11,0.4)';
+                    preview.style.background  = 'rgba(245,158,11,0.07)';
+                    document.querySelector('#cookie-parse-preview div').style.color = 'var(--accent-warning,#f59e0b)';
+                    document.querySelector('#cookie-parse-preview div').textContent = '⚠ Tìm thấy một phần:';
+                } else {
+                    preview.style.borderColor = 'rgba(16,185,129,0.25)';
+                    preview.style.background  = 'rgba(16,185,129,0.07)';
+                    document.querySelector('#cookie-parse-preview div').style.color = 'var(--accent-success)';
+                    document.querySelector('#cookie-parse-preview div').textContent = '✓ Phát hiện cookies:';
+                }
+            } else {
+                preview.style.display = 'none';
+                errBox.style.display  = '';
+                errBox.textContent = 'Không tìm thấy __Secure-1PSID hoặc __Secure-1PSIDTS trong text này. Hãy kiểm tra lại định dạng.';
+            }
+        }
+
         // Cookie Update Handler
         async function handleCookieUpdate(e) {
             e.preventDefault();
-            const psid = document.getElementById("cookie-psid").value.trim();
-            const psidts = document.getElementById("cookie-psidts").value.trim();
             const btn = document.getElementById("cookie-submit-btn");
+            let psid, psidts;
 
-            if (!psid || !psidts) return;
+            if (cookieRawMode) {
+                // Parse from raw text
+                const rawText = document.getElementById('cookie-raw-text').value.trim();
+                if (!rawText) { showToast('Vui lòng dán cookie text vào ô bên trên.', 'warning'); return; }
+                const parsed = parseRawCookies(rawText);
+                psid   = parsed.psid;
+                psidts = parsed.psidts;
+                if (!psid || !psidts) {
+                    showToast('Không tìm thấy đủ __Secure-1PSID và __Secure-1PSIDTS. Hãy kiểm tra lại.', 'warning');
+                    return;
+                }
+            } else {
+                psid   = document.getElementById("cookie-psid").value.trim();
+                psidts = document.getElementById("cookie-psidts").value.trim();
+                if (!psid || !psidts) { showToast('Vui lòng nhập đầy đủ cả hai giá trị cookie.', 'warning'); return; }
+            }
 
             btn.disabled = true;
             btn.innerText = "Đang đồng bộ hóa...";
@@ -1247,6 +1405,8 @@
                 const res = await apiRequest("/v1/admin/cookies", "POST", { psid, psidts });
                 showToast("Đồng bộ Google Cookies thành công!", "success");
                 document.getElementById("cookie-sync-form").reset();
+                document.getElementById('cookie-parse-preview').style.display = 'none';
+                document.getElementById('cookie-parse-error').style.display   = 'none';
                 refreshDashboardData();
             } catch (err) {
                 console.error(err);
