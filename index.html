@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Modern API Tester</title>
+    <title>Gemini Nexus - Chat AI</title>
+    <meta name="description" content="Gemini Nexus - Trợ lý AI thế hệ mới bởi Trần Đăng Khoa Technology">
     
     <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
 
     <!-- PDF Generation Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -155,8 +157,18 @@
         .gemini-source-pill:hover .gemini-source-tooltip { opacity: 1; visibility: visible; pointer-events: auto; }
 
         /* User Message Collapsing */
-        .user-msg-collapse-wrap { max-height: 140px; overflow: hidden; position: relative; transition: max-height 0.3s ease-in-out; }
+        .user-msg-collapse-wrap { max-height: 140px; overflow: hidden; position: relative; transition: max-height 0.4s ease-in-out; }
         .user-msg-collapse-wrap.expanded { max-height: 5000px; }
+        /* Fade-out gradient at bottom when collapsed */
+        .user-msg-collapse-wrap::after {
+            content: '';
+            position: absolute; bottom: 0; left: 0; right: 0;
+            height: 40px;
+            background: linear-gradient(to bottom, transparent, rgba(99, 102, 241, 0.15));
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .user-msg-collapse-wrap.expanded::after { opacity: 0; }
 
         /* Custom Details/Summary Styles for Thoughts & Config */
         details > summary { list-style: none; }
@@ -303,6 +315,10 @@
         @keyframes bounce-slow {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-8px); }
+        }
+        @keyframes slideDown {
+            0% { transform: translateY(-100%); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
         }
 
         /* 11. Custom avatar styling */
@@ -2698,9 +2714,6 @@
             setTimeout(checkCookieStatus, 1500);
         };
 
-        // apiUrlInput listener disabled as it is auto-bound to host domain
-            fetchAutoApiKeys();
-        });
         apiKeyInput.addEventListener('input', () => {
             localStorage.setItem('apiKey', apiKeyInput.value);
             const typedVal = apiKeyInput.value.trim();
@@ -3314,14 +3327,14 @@
             const stopIcon = document.getElementById('stopIcon');
             
             if (generating) {
-                sendBtn.classList.replace('bg-white', 'bg-gray-700');
-                sendBtn.classList.replace('text-gray-900', 'text-white');
+                sendBtn.classList.remove('bg-white', 'text-gray-900');
+                sendBtn.classList.add('bg-gray-700', 'text-white');
                 sendIcon.classList.add('hidden');
                 stopIcon.classList.remove('hidden');
                 sendBtn.disabled = false;
             } else {
-                sendBtn.classList.replace('bg-gray-700', 'bg-white');
-                sendBtn.classList.replace('text-white', 'text-gray-900');
+                sendBtn.classList.remove('bg-gray-700', 'text-white');
+                sendBtn.classList.add('bg-white', 'text-gray-900');
                 stopIcon.classList.add('hidden');
                 sendIcon.classList.remove('hidden');
                 updateSendButtonState();
@@ -3498,14 +3511,16 @@
                         const reader = response.body.getReader();
                         const decoder = new TextDecoder("utf-8");
                         
-                        chatBox.addEventListener('scroll', () => {
+                        // Use AbortController-scoped handler to prevent listener accumulation
+                        const scrollHandler = () => {
                             const isAtBottom = chatBox.scrollHeight - chatBox.scrollTop <= chatBox.clientHeight + 100;
                             if (!isAtBottom && isGenerating) {
                                 autoScroll = false;
                             } else if (isAtBottom) {
                                 autoScroll = true;
                             }
-                        });
+                        };
+                        chatBox.addEventListener('scroll', scrollHandler);
 
                         let fullAssistantText = "";
                         let assistantImages = [];
@@ -3635,6 +3650,9 @@
                         if (pendingDOMUpdate) {
                             flushStreamUI();
                         }
+                        
+                        // Clean up the scroll listener
+                        chatBox.removeEventListener('scroll', scrollHandler);
 
                         messageHistory.push({ role: "assistant", content: fullAssistantText, images: assistantImages, videos: assistantVideos, sources: assistantSources, files: assistantFiles, timestamp: getTimestamp() });
                         saveChatState();
@@ -3656,6 +3674,9 @@
                     success = true; 
 
                 } catch (error) {
+                    // Always clean up scroll listener on error
+                    if (typeof scrollHandler !== 'undefined') chatBox.removeEventListener('scroll', scrollHandler);
+                    
                     if (error.name === 'AbortError') {
                         const nodeHTML = streamNode.contentNode.innerHTML;
                         messageHistory.push({ role: "assistant", content: "*[Response stopped by user]*", images: [], videos: [], sources: [], timestamp: getTimestamp() });
