@@ -505,7 +505,15 @@ if bot:
                             img_url = img.url if hasattr(img, 'url') else img.get('url')
                             img_title = img.title if hasattr(img, 'title') else img.get('title', 'Generated Image')
                             
-                            img_resp = await chatbot.session.get(img_url, timeout=20)
+                            from curl_cffi.requests import Cookies, AsyncSession
+                            jar = Cookies()
+                            if cookies[0]:
+                                jar.set("__Secure-1PSID", cookies[0], domain=".google.com")
+                            if cookies[1]:
+                                jar.set("__Secure-1PSIDTS", cookies[1], domain=".google.com")
+                                
+                            async with AsyncSession(cookies=jar, impersonate="chrome110") as img_session:
+                                img_resp = await img_session.get(img_url, timeout=20)
                             
                             if img_resp.status_code == 200:
                                 bot.send_photo(message.chat.id, photo=img_resp.content, caption=f"✨ {img_title}")

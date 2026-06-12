@@ -161,6 +161,174 @@
         /* Custom Details/Summary Styles for Thoughts & Config */
         details > summary { list-style: none; }
         details > summary::-webkit-details-marker { display: none; }
+
+        /* ========================================================
+           PREMIUM MODERN THEME OVERRIDES (WOW UI/UX)
+           ======================================================== */
+        
+        /* 1. Deep Space background with smooth color blobs */
+        body {
+            background-color: #05070c !important;
+            background-image: 
+                radial-gradient(circle at 5% 5%, rgba(99, 102, 241, 0.08) 0%, transparent 35%),
+                radial-gradient(circle at 95% 95%, rgba(139, 92, 246, 0.06) 0%, transparent 35%) !important;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* 2. Glassmorphic Sidebar */
+        #sidebar {
+            background: rgba(10, 15, 30, 0.8) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+        }
+        #sidebar * {
+            border-color: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        /* 3. Smooth Glass Topbar */
+        header {
+            background: rgba(5, 7, 12, 0.6) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+        }
+
+        /* 4. Chat Area Transparent & Modern message flow */
+        #mainChatArea {
+            background: transparent !important;
+        }
+        #chatBox {
+            padding-bottom: 120px !important;
+        }
+
+        /* 5. User Message Bubble redesign (Asymmetric modern bubble) */
+        .user-bubble-content {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+            color: #ffffff !important;
+            border-radius: 20px 20px 4px 20px !important;
+            padding: 12px 18px !important;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.25) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            font-weight: 400;
+        }
+        .user-bubble-content:hover {
+            box-shadow: 0 6px 25px rgba(99, 102, 241, 0.35) !important;
+        }
+
+        /* 6. Assistant Message Bubble redesign (Frosted Glass bubble) */
+        .markdown-body {
+            background: rgba(25, 33, 50, 0.45) !important;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.06) !important;
+            border-radius: 20px 20px 20px 4px !important;
+            padding: 16px 20px !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
+            color: #e2e8f0 !important;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        .markdown-body pre {
+            background-color: #0d1117 !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 10px !important;
+        }
+
+        /* 7. Input Control Bar Glassmorphism */
+        #dropZoneContainer > div.relative.flex.items-end {
+            background: rgba(20, 26, 40, 0.7) !important;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+            border-radius: 18px !important;
+            transition: all 0.3s ease;
+        }
+        #dropZoneContainer > div.relative.flex.items-end:focus-within {
+            border-color: rgba(99, 102, 241, 0.6) !important;
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.15) !important;
+            background: rgba(25, 33, 50, 0.85) !important;
+        }
+
+        /* 8. Send Button Gradient & Animation */
+        #sendBtn {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+            color: white !important;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35) !important;
+            border-radius: 12px !important;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        #sendBtn:hover:not(:disabled) {
+            transform: scale(1.06) translateY(-1px);
+            box-shadow: 0 6px 18px rgba(99, 102, 241, 0.45) !important;
+            background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%) !important;
+        }
+        #sendBtn:disabled {
+            background: rgba(255, 255, 255, 0.05) !important;
+            color: rgba(255, 255, 255, 0.2) !important;
+            transform: none !important;
+            box-shadow: none !important;
+            opacity: 0.4 !important;
+        }
+
+        /* 9. Key Selector Dropdown styling */
+        #apiKeySelector {
+            background-color: #0f172a !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            color: #f1f5f9 !important;
+        }
+        #apiKeySelector:focus {
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25) !important;
+        }
+
+        /* 10. Empty State redesign */
+        #emptyState {
+            background: transparent !important;
+        }
+        #emptyState > div.bg-white {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+            color: white !important;
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.3) !important;
+            border: 2px solid rgba(255, 255, 255, 0.1) !important;
+            transform: translateY(0);
+            animation: bounce-slow 4s infinite ease-in-out;
+        }
+        #emptyState svg {
+            color: white !important;
+        }
+        @keyframes bounce-slow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        /* 11. Custom avatar styling */
+        #chatBox .w-8.h-8.rounded-full.bg-white {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: white !important;
+            margin-top: 4px;
+        }
+        #chatBox .w-8.h-8.rounded-full.bg-white svg {
+            color: white !important;
+        }
+
+        /* 12. Active modifier pills modern design */
+        #workspaceModePill {
+            background: rgba(99, 102, 241, 0.15) !important;
+            border-color: rgba(99, 102, 241, 0.3) !important;
+            color: #a5b4fc !important;
+            border-radius: 8px !important;
+        }
+        #pdfModePill {
+            background: rgba(239, 68, 68, 0.15) !important;
+            border-color: rgba(239, 68, 68, 0.3) !important;
+            color: #fca5a5 !important;
+            border-radius: 8px !important;
+        }
     </style>
 </head>
 <body class="flex h-screen w-full bg-gray-850">
@@ -198,7 +366,15 @@
                         <input type="text" id="apiUrl" value="http://localhost:8000" class="w-full px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-gray-500 text-sm text-gray-200 placeholder-gray-500 transition-colors">
                     </div>
                     
-                    <div class="space-y-1.5">
+                    <!-- Fast key selection dropdown -->
+                    <div class="space-y-1.5" id="apiKeySelectorContainer" style="display: none;">
+                        <label class="text-xs text-gray-400 pl-1">API Key (Chọn nhanh)</label>
+                        <select id="apiKeySelector" class="w-full px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-gray-500 text-sm text-gray-200 placeholder-gray-500 transition-colors">
+                            <option value="custom">-- Nhập key thủ công --</option>
+                        </select>
+                    </div>
+                    
+                    <div class="space-y-1.5" id="apiKeyInputContainer">
                         <label class="text-xs text-gray-400 pl-1">API Key</label>
                         <input type="password" id="apiKey" placeholder="sk-..." class="w-full px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-gray-500 text-sm text-gray-200 placeholder-gray-500 transition-colors">
                     </div>
@@ -2270,6 +2446,9 @@
 
         const apiUrlInput = document.getElementById('apiUrl');
         const apiKeyInput = document.getElementById('apiKey');
+        const apiKeySelectorContainer = document.getElementById('apiKeySelectorContainer');
+        const apiKeySelector = document.getElementById('apiKeySelector');
+        const apiKeyInputContainer = document.getElementById('apiKeyInputContainer');
         const systemPromptInput = document.getElementById('systemPrompt');
         const modelSelect = document.getElementById('modelSelect');
         const streamToggle = document.getElementById('streamToggle');
@@ -2277,6 +2456,61 @@
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
         const emptyState = document.getElementById('emptyState');
+
+        function fetchAutoApiKeys() {
+            const adminKey = localStorage.getItem("gemini_admin_key");
+            const baseUrl = apiUrlInput.value.trim() || "http://localhost:8000";
+            if (!adminKey) {
+                apiKeySelectorContainer.style.display = "none";
+                apiKeyInputContainer.style.display = "block";
+                return;
+            }
+            
+            fetch(`${baseUrl}/v1/admin/dashboard_data`, {
+                headers: {
+                    "Authorization": `Bearer ${adminKey}`
+                }
+            })
+            .then(res => {
+                if (res.ok) return res.json();
+                throw new Error("Unauthorized");
+            })
+            .then(data => {
+                const keys = data.keys.filter(k => k.active);
+                if (keys.length > 0) {
+                    apiKeySelector.innerHTML = '<option value="custom">-- Nhập key thủ công --</option>';
+                    keys.forEach(k => {
+                        const maskedToken = k.key.length > 12 
+                            ? k.key.substring(0, 6) + "..." + k.key.substring(k.key.length - 6)
+                            : k.key;
+                        const opt = document.createElement("option");
+                        opt.value = k.key;
+                        opt.innerText = `${k.name} (${maskedToken}) [${k.role.toUpperCase()}]`;
+                        apiKeySelector.appendChild(opt);
+                    });
+                    
+                    apiKeySelectorContainer.style.display = "block";
+                    
+                    const currentApiKey = apiKeyInput.value.trim();
+                    const matchedOpt = Array.from(apiKeySelector.options).find(o => o.value === currentApiKey);
+                    if (matchedOpt) {
+                        apiKeySelector.value = currentApiKey;
+                        apiKeyInputContainer.style.display = "none";
+                    } else {
+                        apiKeySelector.value = "custom";
+                        apiKeyInputContainer.style.display = "block";
+                    }
+                } else {
+                    apiKeySelectorContainer.style.display = "none";
+                    apiKeyInputContainer.style.display = "block";
+                }
+            })
+            .catch(err => {
+                console.log("Could not load auto API keys:", err);
+                apiKeySelectorContainer.style.display = "none";
+                apiKeyInputContainer.style.display = "block";
+            });
+        }
 
         window.onload = () => {
             apiUrlInput.value = localStorage.getItem('apiUrl') || 'http://localhost:8000';
@@ -2293,6 +2527,7 @@
             const cachedModels = JSON.parse(localStorage.getItem('cachedModels')) || [];
             if (cachedModels.length > 0) populateModelDropdown(cachedModels, localStorage.getItem('selectedModel'));
             if (apiKeyInput.value) fetchModels(true); 
+            fetchAutoApiKeys(); 
             
             // --- NATIVE MIGRATION SCRIPT ---
             if (!Array.isArray(chatSessions) || chatSessions.length === 0) {
@@ -2329,8 +2564,34 @@
             }
         };
 
-        apiUrlInput.addEventListener('input', () => localStorage.setItem('apiUrl', apiUrlInput.value));
-        apiKeyInput.addEventListener('input', () => localStorage.setItem('apiKey', apiKeyInput.value));
+        apiUrlInput.addEventListener('input', () => {
+            localStorage.setItem('apiUrl', apiUrlInput.value);
+            fetchAutoApiKeys();
+        });
+        apiKeyInput.addEventListener('input', () => {
+            localStorage.setItem('apiKey', apiKeyInput.value);
+            const typedVal = apiKeyInput.value.trim();
+            const matchedOpt = Array.from(apiKeySelector.options).find(o => o.value === typedVal);
+            if (matchedOpt) {
+                apiKeySelector.value = typedVal;
+                apiKeyInputContainer.style.display = "none";
+            } else {
+                apiKeySelector.value = "custom";
+                apiKeyInputContainer.style.display = "block";
+            }
+        });
+        apiKeySelector.addEventListener('change', () => {
+            if (apiKeySelector.value === "custom") {
+                apiKeyInputContainer.style.display = "block";
+                apiKeyInput.value = "";
+                localStorage.setItem('apiKey', "");
+            } else {
+                apiKeyInputContainer.style.display = "none";
+                apiKeyInput.value = apiKeySelector.value;
+                localStorage.setItem('apiKey', apiKeySelector.value);
+                fetchModels(true);
+            }
+        });
         systemPromptInput.addEventListener('input', () => localStorage.setItem('systemPrompt', systemPromptInput.value));
         modelSelect.addEventListener('change', () => localStorage.setItem('selectedModel', modelSelect.value));
         streamToggle.addEventListener('change', () => localStorage.setItem('streamEnabled', streamToggle.checked));

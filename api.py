@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, HTMLResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional, Union, Dict, Any
 import time
@@ -62,8 +62,48 @@ class CookieUpdateRequest(BaseModel):
     psid: str
     psidts: str
 
-def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    details = db.get_api_key_details(credentials.credentials)
+class AnthropicMessage(BaseModel):
+    role: str
+    content: Union[str, List[Any]]
+
+class AnthropicMessagesRequest(BaseModel):
+    model: str
+    messages: List[AnthropicMessage]
+    system: Optional[Union[str, List[Any]]] = None
+    max_tokens: Optional[int] = 1024
+    metadata: Optional[Dict[str, Any]] = None
+    stop_sequences: Optional[List[str]] = None
+    stream: Optional[bool] = False
+    temperature: Optional[float] = 1.0
+    top_p: Optional[float] = 1.0
+    top_k: Optional[int] = None
+    tools: Optional[List[Dict[str, Any]]] = None
+    tool_choice: Optional[Dict[str, Any]] = None
+
+    class Config:
+        extra = "ignore"
+
+def get_api_key_from_request(request: Request) -> str:
+    # 1. Check x-api-key header (Anthropic standard)
+    x_key = request.headers.get("x-api-key")
+    if x_key:
+        return x_key
+    
+    # 2. Check Authorization Bearer header
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        return auth_header.split(" ")[1]
+        
+    # 3. Check api-key header
+    api_key = request.headers.get("api-key")
+    if api_key:
+        return api_key
+        
+    raise HTTPException(status_code=401, detail="API Key missing from headers (Authorization Bearer or x-api-key)")
+
+def verify_api_key(request: Request):
+    key = get_api_key_from_request(request)
+    details = db.get_api_key_details(key)
     if not details or not details[0]: 
         raise HTTPException(status_code=401, detail="Invalid or deactivated API Key")
         
@@ -72,15 +112,16 @@ def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)
         raise HTTPException(status_code=401, detail="API Key has expired")
 
     # ENFORCE RATE LIMITS
-    if not db.check_rate_limit(credentials.credentials):
+    if not db.check_rate_limit(key):
         raise HTTPException(
             status_code=429, 
             detail="Rate limit exceeded. Please wait before making more requests."
         )
-    return {"key": credentials.credentials, "allowed_models": details[1], "role": details[2]}
+    return {"key": key, "allowed_models": details[1], "role": details[2]}
 
-def verify_admin_key(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    details = db.get_api_key_details(credentials.credentials)
+def verify_admin_key(request: Request):
+    key = get_api_key_from_request(request)
+    details = db.get_api_key_details(key)
     if not details or not details[0]: 
         raise HTTPException(status_code=401, detail="Invalid or deactivated API Key")
         
@@ -90,7 +131,7 @@ def verify_admin_key(credentials: HTTPAuthorizationCredentials = Depends(securit
 
     if details[2] != 'admin':
         raise HTTPException(status_code=403, detail="API Key lacks 'admin' permissions required for this endpoint")
-    return {"key": credentials.credentials}
+    return {"key": key}
 
 # ==========================================
 # SECURE EXTENSION AUTO-HEALER ENDPOINTS
@@ -197,6 +238,26 @@ async def proxy_download(request: Request, url: str, view: bool = False, token: 
     headers = {"Content-Disposition": f"{disposition}; filename=\"{filename}\""}
 
     return StreamingResponse(fetch_file(), media_type="application/pdf", headers=headers)
+
+async def url_to_base64(url: str, cookies_dict: dict) -> str:
+    from curl_cffi.requests import AsyncSession, Cookies
+    jar = Cookies()
+    for name, val in cookies_dict.items():
+        if val:
+            jar.set(name, val, domain=".google.com")
+    try:
+        async with AsyncSession(cookies=jar, impersonate="chrome110") as session:
+            r = await session.get(url, allow_redirects=True)
+            if r.status_code == 200:
+                content_type = r.headers.get("content-type", "image/png")
+                b64_data = base64.b64encode(r.content).decode("utf-8")
+                return f"data:{content_type};base64,{b64_data}"
+            else:
+                print(f"Failed to download image for base64 conversion: status {r.status_code}")
+                return url
+    except Exception as e:
+        print(f"Error converting image url to base64: {e}")
+        return url
 
 @app.post("/v1/chat/completions")
 async def chat_completions(request: ChatCompletionRequest, auth_data: dict = Depends(verify_api_key)):
@@ -403,11 +464,19 @@ STRICT RULES:
                             # Extract and format images securely for JSON serialization
                             raw_imgs = result.get("images", [])
                             safe_imgs = []
-                            for img in raw_imgs:
-                                if hasattr(img, 'url'):
-                                    safe_imgs.append({"url": img.url, "title": getattr(img, 'title', 'Image')})
-                                elif isinstance(img, dict) and 'url' in img:
-                                    safe_imgs.append({"url": img['url'], "title": img.get('title', 'Image')})
+                            if raw_imgs:
+                                c_dict = {"__Secure-1PSID": cookies[0]}
+                                if cookies[1]:
+                                    c_dict["__Secure-1PSIDTS"] = cookies[1]
+                                for img in raw_imgs:
+                                    img_url = img.url if hasattr(img, 'url') else (img.get('url', '') if isinstance(img, dict) else '')
+                                    img_title = getattr(img, 'title', 'Image') if hasattr(img, 'title') else (img.get('title', 'Image') if isinstance(img, dict) else 'Image')
+                                    if img_url:
+                                        if img_url.startswith("http"):
+                                            b64_url = await url_to_base64(img_url, c_dict)
+                                        else:
+                                            b64_url = img_url
+                                        safe_imgs.append({"url": b64_url, "title": img_title})
                             
                             safe_vids = result.get("videos", [])
                             safe_sources = result.get("sources", [])
@@ -524,11 +593,19 @@ STRICT RULES:
             # Extract images for non-streaming mode
             raw_imgs = response.get("images", [])
             safe_imgs = []
-            for img in raw_imgs:
-                if hasattr(img, 'url'):
-                    safe_imgs.append({"url": img.url, "title": getattr(img, 'title', 'Image')})
-                elif isinstance(img, dict) and 'url' in img:
-                    safe_imgs.append({"url": img['url'], "title": img.get('title', 'Image')})
+            if raw_imgs:
+                c_dict = {"__Secure-1PSID": cookies[0]}
+                if cookies[1]:
+                    c_dict["__Secure-1PSIDTS"] = cookies[1]
+                for img in raw_imgs:
+                    img_url = img.url if hasattr(img, 'url') else (img.get('url', '') if isinstance(img, dict) else '')
+                    img_title = getattr(img, 'title', 'Image') if hasattr(img, 'title') else (img.get('title', 'Image') if isinstance(img, dict) else 'Image')
+                    if img_url:
+                        if img_url.startswith("http"):
+                            b64_url = await url_to_base64(img_url, c_dict)
+                        else:
+                            b64_url = img_url
+                        safe_imgs.append({"url": b64_url, "title": img_title})
 
             safe_vids = response.get("videos", [])
             safe_sources = response.get("sources", [])
@@ -584,3 +661,313 @@ STRICT RULES:
                 except: pass
                 
         raise HTTPException(status_code=500, detail=error_str)
+
+@app.post("/v1/messages")
+@app.post("/messages")
+async def anthropic_messages(request: AnthropicMessagesRequest, auth_data: dict = Depends(verify_api_key)):
+    cookies = db.get_cookies()
+    if not cookies or not cookies[0]:
+        raise HTTPException(status_code=500, detail="Gemini Cookies not set. Admin must set them via Telegram.")
+    
+    allowed_models_str = auth_data["allowed_models"]
+    allowed_list = [m.strip() for m in allowed_models_str.split(",")] if allowed_models_str != "all" else None
+    
+    # Translate model name from Anthropic to Gemini if needed
+    model_name = request.model
+    if "claude" in model_name.lower():
+        model_name = "gemini-3.5-flash"
+            
+    if allowed_list and model_name not in allowed_list:
+        model_name = allowed_list[0] if allowed_list else "gemini-3.5-flash"
+
+    # --- SYSTEM PROMPT LOGIC ---
+    system_prompts = []
+    if request.system:
+        if isinstance(request.system, list):
+            text_parts = [item.get("text", "") for item in request.system if isinstance(item, dict) and item.get("type") == "text"]
+            system_prompts.append("\n".join(text_parts))
+        elif isinstance(request.system, str):
+            system_prompts.append(request.system)
+
+    # Convert Anthropic messages format to simple prompt text
+    user_prompt_text = ""
+    if request.messages:
+        last_msg = request.messages[-1]
+        last_msg_content = last_msg.content
+        if isinstance(last_msg_content, list):
+            prompt_parts = [item.get("text", "") for item in last_msg_content if isinstance(item, dict) and item.get("type") == "text"]
+            user_prompt_text = "\n".join(prompt_parts).strip()
+        else:
+            user_prompt_text = str(last_msg_content)
+
+    # Combine system prompts and user prompt
+    final_prompt = ""
+    if system_prompts:
+        combined_system = "\n\n".join(system_prompts)
+        if user_prompt_text:
+            final_prompt = f"[SYSTEM INSTRUCTIONS]\n{combined_system}\n[/SYSTEM INSTRUCTIONS]\n\n[USER REQUEST]\n{user_prompt_text}\n[/USER REQUEST]"
+        else:
+            final_prompt = f"[SYSTEM INSTRUCTIONS]\n{combined_system}\n[/SYSTEM INSTRUCTIONS]"
+    else:
+        final_prompt = user_prompt_text
+
+    prompt = final_prompt
+    api_key_token = auth_data["key"]
+
+    try:
+        try:
+            requested_model = Model.from_name(model_name)
+        except ValueError:
+            requested_model = Model.G_3_5_FLASH
+            
+        bot = await AsyncChatbot.create(
+            secure_1psid=cookies[0],
+            secure_1psidts=cookies[1],
+            model=requested_model
+        )
+        
+        session_data = db.get_api_key_session(api_key_token)
+        if session_data and session_data["cid"]:
+            bot.conversation_id = session_data["cid"]
+            bot.response_id = session_data["rid"] or ""
+            bot.choice_id = session_data["chid"] or ""
+
+        if request.stream:
+            async def stream_generator():
+                try:
+                    cid, rid, chid = None, None, None
+                    has_content = False
+                    
+                    # 1. message_start
+                    msg_id = f"msg_{uuid.uuid4().hex}"
+                    message_start_event = {
+                        "type": "message_start",
+                        "message": {
+                            "id": msg_id,
+                            "type": "message",
+                            "role": "assistant",
+                            "content": [],
+                            "model": model_name,
+                            "stop_reason": None,
+                            "stop_sequence": None,
+                            "usage": {"input_tokens": 0, "output_tokens": 0}
+                        }
+                    }
+                    yield f"event: message_start\ndata: {json.dumps(message_start_event)}\n\n"
+
+                    # 2. content_block_start
+                    content_block_start_event = {
+                        "type": "content_block_start",
+                        "index": 0,
+                        "content_block": {"type": "text", "text": ""}
+                    }
+                    yield f"event: content_block_start\ndata: {json.dumps(content_block_start_event)}\n\n"
+                    
+                    try:
+                        async for result in bot.ask_stream(prompt):
+                            if result.get("error"):
+                                db.update_api_key_session(api_key_token, None, None, None)
+                                cid = None
+                                error_msg = result.get("content", "Unknown error")
+                                error_event = {
+                                    "type": "content_block_delta",
+                                    "index": 0,
+                                    "delta": {"type": "text_delta", "text": f"\n\n[Error: {error_msg}]"}
+                                }
+                                yield f"event: content_block_delta\ndata: {json.dumps(error_event)}\n\n"
+                                break
+                            
+                            chunk_text = result.get("chunk", "")
+                            cid = result.get("conversation_id")
+                            rid = result.get("response_id")
+                            chid = result.get("choice_id")
+                            
+                            if chunk_text:
+                                has_content = True
+                                delta_event = {
+                                    "type": "content_block_delta",
+                                    "index": 0,
+                                    "delta": {"type": "text_delta", "text": chunk_text}
+                                }
+                                yield f"event: content_block_delta\ndata: {json.dumps(delta_event)}\n\n"
+                                
+                    except Exception as stream_e:
+                        db.update_api_key_session(api_key_token, None, None, None)
+                        cid = None
+                        error_str = str(stream_e)
+                        
+                        if any(kw in error_str.lower() for kw in ["cookie", "snlm0e", "auth", "permission", "status: 40", "status: 50"]):
+                            db.set_needs_update(True)
+                            if db.check_and_set_alert_flood(cooldown_seconds=300):
+                                try:
+                                    from admin_bot import send_admin_alert
+                                    send_admin_alert("Cookies expired! Notifying Chrome Extension Auto-Healer to execute payload...")
+                                except: pass
+                                
+                        error_event = {
+                            "type": "content_block_delta",
+                            "index": 0,
+                            "delta": {"type": "text_delta", "text": f"\n\n[Stream Error: {error_str}]"}
+                        }
+                        yield f"event: content_block_delta\ndata: {json.dumps(error_event)}\n\n"
+
+                    if cid and has_content:
+                        db.update_api_key_session(api_key_token, cid, rid, chid)
+                    else:
+                        db.update_api_key_session(api_key_token, None, None, None)
+                        
+                    # 4. content_block_stop
+                    content_block_stop_event = {
+                        "type": "content_block_stop",
+                        "index": 0
+                    }
+                    yield f"event: content_block_stop\ndata: {json.dumps(content_block_stop_event)}\n\n"
+
+                    # 5. message_delta
+                    message_delta_event = {
+                        "type": "message_delta",
+                        "delta": {"stop_reason": "end_turn", "stop_sequence": None},
+                        "usage": {"output_tokens": 0}
+                    }
+                    yield f"event: message_delta\ndata: {json.dumps(message_delta_event)}\n\n"
+
+                    # 6. message_stop
+                    message_stop_event = {
+                        "type": "message_stop"
+                    }
+                    yield f"event: message_stop\ndata: {json.dumps(message_stop_event)}\n\n"
+                    
+                finally:
+                    await bot.session.close()
+
+            return StreamingResponse(stream_generator(), media_type="text/event-stream")
+
+        else:
+            response = await bot.ask(prompt)
+            
+            if response.get("error"):
+                db.update_api_key_session(api_key_token, None, None, None)
+                await bot.session.close()
+                raise HTTPException(status_code=500, detail=str(response.get("content", "Unknown error occurred.")))
+                
+            raw_content = response.get("content") or ""
+            
+            def extract_text(item: Any) -> str:
+                if isinstance(item, str):
+                    return item
+                elif isinstance(item, list):
+                    return "".join(extract_text(x) for x in item if x is not None)
+                return str(item) if item is not None else ""
+                
+            final_content = extract_text(raw_content).strip()
+
+            if not final_content:
+                db.update_api_key_session(api_key_token, None, None, None)
+            else:
+                db.update_api_key_session(api_key_token, bot.conversation_id, bot.response_id, bot.choice_id)
+
+            await bot.session.close()
+
+            return {
+                "id": f"msg_{uuid.uuid4().hex}",
+                "type": "message",
+                "role": "assistant",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": final_content
+                    }
+                ],
+                "model": model_name,
+                "stop_reason": "end_turn",
+                "stop_sequence": None,
+                "usage": {
+                    "input_tokens": 0,
+                    "output_tokens": 0
+                }
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_str = str(e)
+        db.update_api_key_session(api_key_token, None, None, None)
+        if any(kw in error_str.lower() for kw in ["cookie", "snlm0e", "auth", "permission", "status: 40", "status: 50"]):
+            db.set_needs_update(True)
+            if db.check_and_set_alert_flood(cooldown_seconds=300):
+                try:
+                    from admin_bot import send_admin_alert
+                    send_admin_alert("Cookies expired! Notifying Chrome Extension Auto-Healer to execute payload...")
+                except: pass
+        raise HTTPException(status_code=500, detail=error_str)
+
+class KeyCreateRequest(BaseModel):
+    name: str
+    role: Optional[str] = "user"
+    allowed_models: Optional[str] = "all"
+    expires_in_hours: Optional[float] = 0
+
+class KeyRevokeRequest(BaseModel):
+    key: str
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_dashboard():
+    dashboard_path = os.path.join("static", "dashboard.html")
+    if not os.path.exists(dashboard_path):
+        return HTMLResponse(content="<h1>Dashboard file not found</h1>", status_code=404)
+    with open(dashboard_path, "r", encoding="utf-8") as f:
+        html_content = f.read()
+    return HTMLResponse(content=html_content)
+
+@app.get("/chat", response_class=HTMLResponse)
+async def serve_chat():
+    if not os.path.exists("index.html"):
+        return HTMLResponse(content="<h1>Chat file not found</h1>", status_code=404)
+    with open("index.html", "r", encoding="utf-8") as f:
+        html_content = f.read()
+    return HTMLResponse(content=html_content)
+
+@app.get("/v1/admin/dashboard_data")
+async def get_dashboard_data(admin_auth = Depends(verify_admin_key)):
+    cookies = db.get_cookies()
+    keys = db.list_api_keys()
+    
+    formatted_keys = []
+    for k in keys:
+        formatted_keys.append({
+            "key": k[0],
+            "name": k[1],
+            "active": bool(k[2]),
+            "allowed_models": k[3],
+            "timeout_hours": k[4],
+            "role": k[5],
+            "req_per_min": k[6],
+            "expires_at": k[7]
+        })
+        
+    return {
+        "status": "online",
+        "cookies": {
+            "psid_set": bool(cookies[0]),
+            "psidts_set": bool(cookies[1]),
+            "needs_update": db.get_needs_update()
+        },
+        "keys": formatted_keys
+    }
+
+@app.post("/v1/admin/keys/create")
+async def create_key(request: KeyCreateRequest, admin_auth = Depends(verify_admin_key)):
+    new_key = db.generate_api_key(
+        name=request.name,
+        allowed_models=request.allowed_models,
+        role=request.role,
+        expires_in_hours=request.expires_in_hours
+    )
+    return {"status": "success", "key": new_key}
+
+@app.post("/v1/admin/keys/revoke")
+async def revoke_key(request: KeyRevokeRequest, admin_auth = Depends(verify_admin_key)):
+    success = db.revoke_api_key(request.key)
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to revoke key or key not found")
+    return {"status": "success"}

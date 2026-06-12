@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Nexus - Admin Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #080b11;
+            --panel-bg: rgba(15, 22, 36, 0.7);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --accent-primary: #6366f1; /* Indigo */
+            --accent-primary-hover: #4f46e5;
+            --accent-success: #10b981; /* Emerald */
+            --accent-danger: #ef4444; /* Rose */
+            --accent-warning: #f59e0b; /* Amber */
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            transition: all 0.2s ease;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.08) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Glass Panel */
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            box-shadow: var(--glass-shadow);
+        }
+
+        /* Auth Screen */
+        #auth-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 450px;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .auth-logo {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #6366f1, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .auth-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-field {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .input-field:focus {
+            border-color: var(--accent-primary);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+        }
+
+        .btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Main App Layout */
+        #app-container {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 24px;
+            flex-grow: 1;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 16px 24px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-text {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #6366f1, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .key-badge {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 30px;
+            padding: 6px 16px;
+            font-size: 0.85rem;
+            font-family: monospace;
+            color: var(--text-secondary);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--text-primary);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .stat-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--accent-primary);
+            font-size: 1.5rem;
+        }
+
+        .stat-card.success .stat-icon {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.15);
+            color: var(--accent-success);
+        }
+
+        .stat-card.danger .stat-icon {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.15);
+            color: var(--accent-danger);
+        }
+
+        .stat-card.warning .stat-icon {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: rgba(245, 158, 11, 0.15);
+            color: var(--accent-warning);
+        }
+
+        .stat-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        /* Badges status */
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--accent-success);
+            box-shadow: 0 0 10px var(--accent-success);
+            margin-right: 6px;
+        }
+
+        .status-dot.pinging {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            animation: pulse-danger 1.5s infinite;
+        }
+
+        @keyframes pulse-danger {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        /* Two Column Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel-card {
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding-bottom: 12px;
+        }
+
+        .panel-title svg {
+            color: var(--accent-primary);
+        }
+
+        .instructions-box {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px dashed rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .instructions-box ol {
+            padding-left: 18px;
+            margin-top: 6px;
+        }
+
+        /* Large Table Panel */
+        .table-panel {
+            padding: 28px;
+            margin-bottom: 40px;
+        }
+
+        .table-header-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-secondary);
+            font-weight: 500;
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--text-primary);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .key-cell {
+            font-family: monospace;
+            color: #c7d2fe;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .copy-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 2px;
+            border-radius: 4px;
+        }
+
+        .copy-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-small-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .btn-small-danger:hover {
+            background: var(--accent-danger);
+            color: white;
+        }
+
+        .btn-small-danger:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+            border-color: transparent;
+        }
+
+        /* Modal styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(2, 6, 23, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 1100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-card {
+            width: 100%;
+            max-width: 500px;
+            padding: 32px;
+            position: relative;
+        }
+
+        .close-modal-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .close-modal-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .new-key-display {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px dashed var(--accent-success);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .new-key-value {
+            font-family: monospace;
+            font-size: 1.1rem;
+            color: #34d399;
+            word-break: break-all;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            text-align: center;
+        }
+
+        /* Form Row Inline */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* Toast System */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 2000;
+        }
+
+        .toast {
+            background: #1e293b;
+            color: var(--text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-left: 4px solid var(--accent-primary);
+            border-radius: 8px;
+            padding: 16px 20px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 300px;
+            animation: slideIn 0.3s ease forwards;
+        }
+
+        .toast.success {
+            border-left-color: var(--accent-success);
+        }
+
+        .toast.error {
+            border-left-color: var(--accent-danger);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast-close {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .toast-close:hover {
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Auth Gate Screen -->
+    <div id="auth-screen">
+        <div class="auth-card glass-panel">
+            <div class="auth-logo">GEMINI NEXUS</div>
+            <div class="auth-subtitle">Nhập khoá Admin API Key để tiếp tục quản trị</div>
+            
+            <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+                <div class="input-group">
+                    <label for="admin-key">Admin API Key</label>
+                    <input type="password" id="admin-key" class="input-field" placeholder="sk-..." required autocomplete="current-password">
+                </div>
+                <button type="submit" id="auth-btn" class="btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    Kết nối máy chủ
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Container -->
+    <div id="app-container">
+        
+        <header class="glass-panel">
+            <div class="logo-area">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-primary)"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                <div class="logo-text">GEMINI NEXUS</div>
+                <span class="badge badge-success" style="font-size: 0.7rem;">ADMIN GATEWAY</span>
+            </div>
+            
+            <div class="header-actions">
+                <a href="/chat" target="_blank" class="btn-outline" style="text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                    API Chat
+                </a>
+                <div id="active-key-display" class="key-badge">sk-...</div>
+                <button onclick="handleLogout()" class="btn-outline" style="color: var(--accent-danger); border-color: rgba(239, 68, 68, 0.25);">Đăng xuất</button>
+            </div>
+        </header>
+
+        <!-- Stats Overview Cards -->
+        <div class="stats-grid">
+            
+            <div class="stat-card glass-panel success">
+                <div class="stat-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">Trạng thái API</span>
+                    <div class="stat-value" style="display: flex; align-items: center;">
+                        <span class="status-dot pinging"></span>
+                        Online
+                    </div>
+                </div>
+            </div>
+
+            <div id="cookie-status-card" class="stat-card glass-panel success">
+                <div class="stat-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path><path d="M12 6v6l4 2"></path></svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">Google Cookies</span>
+                    <div class="stat-value" id="cookie-health-text">Đang kết nối...</div>
+                </div>
+            </div>
+
+            <div class="stat-card glass-panel">
+                <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success); border-color: rgba(16, 185, 129, 0.15)">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">API Keys Hoạt động</span>
+                    <div class="stat-value" id="active-keys-count">0</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Main Content Panels -->
+        <div class="content-grid">
+            
+            <!-- Cookie Sync Panel -->
+            <div class="panel-card glass-panel">
+                <div class="panel-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+                    Đồng bộ hoá Google Cookies
+                </div>
+                
+                <div class="instructions-box">
+                    <strong>Cách lấy Cookies nhanh:</strong>
+                    <ol>
+                        <li>Truy cập <a href="https://gemini.google.com" target="_blank" style="color: var(--accent-primary); text-decoration: none; font-weight: 500;">gemini.google.com</a> và đăng nhập.</li>
+                        <li>F12 -> Application -> Cookies -> Chọn domain google.com.</li>
+                        <li>Sao chép giá trị của <code>__Secure-1PSID</code> và <code>__Secure-1PSIDTS</code>.</li>
+                    </ol>
+                </div>
+
+                <form id="cookie-sync-form" onsubmit="handleCookieUpdate(event)">
+                    <div class="input-group">
+                        <label for="cookie-psid">__Secure-1PSID</label>
+                        <input type="text" id="cookie-psid" class="input-field" placeholder="Nhập giá trị cookie __Secure-1PSID..." required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="cookie-psidts">__Secure-1PSIDTS</label>
+                        <input type="text" id="cookie-psidts" class="input-field" placeholder="Nhập giá trị cookie __Secure-1PSIDTS..." required>
+                    </div>
+
+                    <button type="submit" id="cookie-submit-btn" class="btn" style="background: linear-gradient(135deg, var(--accent-success) 0%, #059669 100%); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                        Cập nhật Cookies hệ thống
+                    </button>
+                </form>
+            </div>
+
+            <!-- Key Creation Panel -->
+            <div class="panel-card glass-panel">
+                <div class="panel-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    Tạo API Key Mới
+                </div>
+
+                <form id="key-create-form" onsubmit="handleCreateKey(event)">
+                    <div class="input-group">
+                        <label for="key-name">Tên / Nhãn gợi nhớ</label>
+                        <input type="text" id="key-name" class="input-field" placeholder="Ví dụ: Dev Server, Client Client A..." required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label for="key-role">Vai trò (Role)</label>
+                            <select id="key-role" class="input-field" style="background-color: #0f172a;">
+                                <option value="user">User (Thường)</option>
+                                <option value="admin">Admin (Quản trị)</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="key-expiry">Hết hạn sau (Giờ)</label>
+                            <input type="number" id="key-expiry" class="input-field" value="0" min="0" placeholder="0 = Vĩnh viễn">
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="key-models">Các mô hình được truy cập</label>
+                        <input type="text" id="key-models" class="input-field" value="all" placeholder="Nhập 'all' hoặc danh sách ngăn cách bởi dấu phẩy">
+                    </div>
+
+                    <button type="submit" id="key-submit-btn" class="btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        Khởi tạo API Key
+                    </button>
+                </form>
+            </div>
+
+        </div>
+
+        <!-- Large Key Management Table -->
+        <div class="table-panel glass-panel">
+            <div class="table-header-area">
+                <div class="panel-title" style="border: none; padding: 0; margin: 0;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 21v-7M9 21v-4M14 21v-11M19 21V3"></path></svg>
+                    Quản lý danh sách API Keys
+                </div>
+                <button onclick="refreshDashboardData()" class="btn-outline" style="font-size: 0.85rem; padding: 6px 12px; display: flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+                    Làm mới dữ liệu
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tên định danh</th>
+                            <th>API Key Token</th>
+                            <th>Vai trò</th>
+                            <th>Mô hình</th>
+                            <th>Hết hạn sau</th>
+                            <th>Trạng thái</th>
+                            <th style="text-align: right;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="keys-table-body">
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 30px;">
+                                Đang tải danh sách API Keys...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Key Generation Result Modal -->
+    <div id="key-modal" class="modal-overlay">
+        <div class="modal-card glass-panel">
+            <button class="close-modal-btn" onclick="closeKeyModal()">&times;</button>
+            <div class="panel-title" style="border-bottom: none; justify-content: center; font-size: 1.4rem; color: var(--accent-success);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                Tạo API Key Thành Công!
+            </div>
+            
+            <p style="text-align: center; margin-top: 10px; color: var(--text-secondary); font-size: 0.9rem;">
+                Hãy sao chép khoá này ngay. Vì lý do bảo mật, nó sẽ **không bao giờ** được hiển thị lại lần thứ hai.
+            </p>
+
+            <div class="new-key-display">
+                <div class="new-key-value" id="generated-key-text">sk-xxxx...</div>
+                <button onclick="copyGeneratedKey()" class="btn" style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.1); box-shadow: none;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    Sao chép API Key
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Javascript Logical operations -->
+    <script>
+        let ADMIN_API_KEY = localStorage.getItem("gemini_admin_key") || "";
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if (ADMIN_API_KEY) {
+                showApp();
+                refreshDashboardData();
+            } else {
+                showAuth();
+            }
+        });
+
+        // UI Management
+        function showAuth() {
+            document.getElementById("auth-screen").style.display = "flex";
+            document.getElementById("app-container").style.display = "none";
+        }
+
+        function showApp() {
+            document.getElementById("auth-screen").style.display = "none";
+            document.getElementById("app-container").style.display = "flex";
+            document.getElementById("active-key-display").innerText = maskKey(ADMIN_API_KEY);
+        }
+
+        function maskKey(key) {
+            if (!key) return "";
+            if (key.length <= 12) return key;
+            return key.substring(0, 6) + "..." + key.substring(key.length - 6);
+        }
+
+        // Toast Notification System
+        function showToast(message, type = "success") {
+            const container = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            toast.className = `toast ${type}`;
+            
+            let icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 16 16 12 12 8"></polyline><line x1="8" y1="12" x2="16" y2="12"></line></svg>`;
+            if (type === "success") {
+                icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+            } else if (type === "error") {
+                icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
+            }
+
+            toast.innerHTML = `
+                ${icon}
+                <span>${message}</span>
+                <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = "slideIn 0.3s ease reverse forwards";
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // API Requests Helper
+        async function apiRequest(endpoint, method = "GET", body = null) {
+            const headers = {
+                "Authorization": `Bearer ${ADMIN_API_KEY}`,
+                "Content-Type": "application/json"
+            };
+
+            const config = {
+                method,
+                headers
+            };
+
+            if (body) {
+                config.body = JSON.stringify(body);
+            }
+
+            try {
+                const response = await fetch(endpoint, config);
+                if (response.status === 401 || response.status === 403) {
+                    showToast("Quyền truy cập bị từ chối hoặc hết hạn. Vui lòng kết nối lại.", "error");
+                    handleLogout();
+                    throw new Error("Unauthorized");
+                }
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || "Có lỗi xảy ra");
+                }
+                return await response.json();
+            } catch (e) {
+                if (e.message !== "Unauthorized") {
+                    showToast(e.message, "error");
+                }
+                throw e;
+            }
+        }
+
+        // Auth Form Submit
+        async function handleAuthSubmit(e) {
+            e.preventDefault();
+            const keyInput = document.getElementById("admin-key");
+            const key = keyInput.value.trim();
+            const btn = document.getElementById("auth-btn");
+
+            if (!key) return;
+
+            btn.disabled = true;
+            btn.innerHTML = `Đang xác thực...`;
+
+            // Try to test connect using the key
+            try {
+                const testHeaders = {
+                    "Authorization": `Bearer ${key}`,
+                    "Content-Type": "application/json"
+                };
+                const testRes = await fetch("/v1/admin/dashboard_data", { headers: testHeaders });
+                
+                if (testRes.status === 401 || testRes.status === 403) {
+                    showToast("API Key không hợp lệ hoặc thiếu quyền Admin!", "error");
+                } else if (testRes.ok) {
+                    ADMIN_API_KEY = key;
+                    localStorage.setItem("gemini_admin_key", key);
+                    showToast("Kết nối máy chủ Nexus thành công!", "success");
+                    showApp();
+                    refreshDashboardData();
+                } else {
+                    showToast("Lỗi máy chủ không xác định khi kết nối.", "error");
+                }
+            } catch (error) {
+                showToast("Không thể kết nối đến máy chủ. Hãy chắc chắn server đang chạy.", "error");
+                console.error(error);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Kết nối máy chủ`;
+            }
+        }
+
+        // Log out
+        function handleLogout() {
+            ADMIN_API_KEY = "";
+            localStorage.removeItem("gemini_admin_key");
+            showAuth();
+        }
+
+        // Fetch Dashboard Data
+        async function refreshDashboardData() {
+            try {
+                const data = await apiRequest("/v1/admin/dashboard_data");
+                updateDashboardUI(data);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Update Dashboard Indicators
+        function updateDashboardUI(data) {
+            // 1. Update Cookies Status Health Card
+            const cookieCard = document.getElementById("cookie-status-card");
+            const cookieText = document.getElementById("cookie-health-text");
+            
+            const psidSet = data.cookies.psid_set;
+            const psidtsSet = data.cookies.psidts_set;
+            const needsUpdate = data.cookies.needs_update;
+
+            if (needsUpdate) {
+                cookieCard.className = "stat-card glass-panel danger";
+                cookieText.innerHTML = `<span class="badge badge-danger">Cần cập nhật khẩn cấp</span>`;
+            } else if (psidSet) {
+                cookieCard.className = "stat-card glass-panel success";
+                cookieText.innerHTML = `<span class="badge badge-success">Sẵn sàng & Hoạt động</span>`;
+            } else {
+                cookieCard.className = "stat-card glass-panel warning";
+                cookieText.innerHTML = `<span class="badge badge-warning">Thiếu Cookies</span>`;
+            }
+
+            // 2. Update Total API Keys
+            const activeKeys = data.keys.filter(k => k.active).length;
+            document.getElementById("active-keys-count").innerText = activeKeys;
+
+            // 3. Render API Keys Table
+            renderKeysTable(data.keys);
+        }
+
+        // Render Keys Table
+        function renderKeysTable(keys) {
+            const tbody = document.getElementById("keys-table-body");
+            tbody.innerHTML = "";
+
+            if (keys.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 30px;">Không có API Key nào trong cơ sở dữ liệu.</td></tr>`;
+                return;
+            }
+
+            keys.forEach(k => {
+                const row = document.createElement("tr");
+
+                // Key Masking and Copy
+                const maskedKey = maskKey(k.key);
+                const roleBadge = k.role === "admin" 
+                    ? `<span class="badge badge-success" style="padding: 2px 6px; font-size: 0.7rem;">ADMIN</span>`
+                    : `<span class="badge badge-success" style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border-color: rgba(99, 102, 241, 0.2); padding: 2px 6px; font-size: 0.7rem;">USER</span>`;
+
+                const statusBadge = k.active 
+                    ? `<span class="badge badge-success" style="padding: 2px 6px; font-size: 0.7rem;">ACTIVE</span>`
+                    : `<span class="badge badge-danger" style="background: rgba(239, 68, 68, 0.1); color: #f87171; border-color: rgba(239, 68, 68, 0.15); animation: none; padding: 2px 6px; font-size: 0.7rem;">REVOKED</span>`;
+
+                const expiryText = k.expires_at > 0 
+                    ? new Date(k.expires_at * 1000).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })
+                    : "Vô thời hạn";
+
+                const isCurrentAdminKey = k.key === ADMIN_API_KEY;
+
+                row.innerHTML = `
+                    <td style="font-weight: 500;">${escapeHtml(k.name)}</td>
+                    <td>
+                        <div class="key-cell">
+                            <span>${maskedKey}</span>
+                            <button onclick="copyToClipboard('${k.key}')" class="copy-btn" title="Copy Key">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
+                        </div>
+                    </td>
+                    <td>${roleBadge}</td>
+                    <td style="font-size: 0.8rem; color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(k.allowed_models)}">
+                        ${escapeHtml(k.allowed_models)}
+                    </td>
+                    <td style="color: var(--text-secondary);">${expiryText}</td>
+                    <td>${statusBadge}</td>
+                    <td style="text-align: right;">
+                        <button onclick="handleRevokeKey('${k.key}')" class="btn-small-danger" ${(!k.active || isCurrentAdminKey) ? 'disabled' : ''} title="${isCurrentAdminKey ? 'Không thể thu hồi khoá admin đang sử dụng' : ''}">
+                            Thu hồi
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Cookie Update Handler
+        async function handleCookieUpdate(e) {
+            e.preventDefault();
+            const psid = document.getElementById("cookie-psid").value.trim();
+            const psidts = document.getElementById("cookie-psidts").value.trim();
+            const btn = document.getElementById("cookie-submit-btn");
+
+            if (!psid || !psidts) return;
+
+            btn.disabled = true;
+            btn.innerText = "Đang đồng bộ hóa...";
+
+            try {
+                const res = await apiRequest("/v1/admin/cookies", "POST", { psid, psidts });
+                showToast("Đồng bộ Google Cookies thành công!", "success");
+                document.getElementById("cookie-sync-form").reset();
+                refreshDashboardData();
+            } catch (err) {
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Cập nhật Cookies hệ thống`;
+            }
+        }
+
+        // Create API Key Handler
+        async function handleCreateKey(e) {
+            e.preventDefault();
+            const name = document.getElementById("key-name").value.trim();
+            const role = document.getElementById("key-role").value;
+            const expiry = parseFloat(document.getElementById("key-expiry").value) || 0;
+            const models = document.getElementById("key-models").value.trim();
+            const btn = document.getElementById("key-submit-btn");
+
+            if (!name) return;
+
+            btn.disabled = true;
+            btn.innerText = "Đang khởi tạo...";
+
+            try {
+                const res = await apiRequest("/v1/admin/keys/create", "POST", {
+                    name,
+                    role,
+                    expires_in_hours: expiry,
+                    allowed_models: models
+                });
+                
+                // Show Result Modal
+                document.getElementById("generated-key-text").innerText = res.key;
+                document.getElementById("key-modal").style.display = "flex";
+                
+                document.getElementById("key-create-form").reset();
+                // Reset inputs default values
+                document.getElementById("key-role").value = "user";
+                document.getElementById("key-expiry").value = "0";
+                document.getElementById("key-models").value = "all";
+                
+                refreshDashboardData();
+            } catch (err) {
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Khởi tạo API Key`;
+            }
+        }
+
+        // Revoke API Key Handler
+        async function handleRevokeKey(key) {
+            if (!confirm(`Bạn có chắc chắn muốn thu hồi (vô hiệu hoá vĩnh viễn) API Key này không? Hành động này không thể hoàn tác.`)) {
+                return;
+            }
+
+            try {
+                await apiRequest("/v1/admin/keys/revoke", "POST", { key });
+                showToast("Thu hồi API Key thành công!", "success");
+                refreshDashboardData();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Modal Controls
+        function closeKeyModal() {
+            document.getElementById("key-modal").style.display = "none";
+        }
+
+        function copyGeneratedKey() {
+            const keyText = document.getElementById("generated-key-text").innerText;
+            copyToClipboard(keyText);
+            showToast("Đã sao chép API Key vào clipboard!", "success");
+        }
+
+        // Clipboard Copy Helper
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("Đã sao chép vào clipboard!", "success");
+            }).catch(err => {
+                showToast("Không thể tự động sao chép. Hãy tự copy.", "warning");
+            });
+        }
+
+        // HTML Escape Helper to prevent XSS
+        function escapeHtml(str) {
+            if (!str) return "";
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>

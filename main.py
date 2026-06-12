@@ -10,8 +10,10 @@ import database as db
 from api import app
 from admin_bot import run_bot
 
-# 1. FIX WINDOWS ASYNCIO WARNING FOR CURL_CFFI
+# 1. FIX WINDOWS ASYNCIO WARNING AND UTF-8 ENCODING FOR CURL_CFFI
 if sys.platform.startswith('win'):
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 if __name__ == "__main__":

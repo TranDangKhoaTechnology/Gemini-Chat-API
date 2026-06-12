@@ -69,6 +69,20 @@ def init_db():
         c.execute("ALTER TABLE system_status ADD COLUMN global_req_per_min INTEGER DEFAULT 60")
     except sqlite3.OperationalError:
         pass
+
+    # NEW: Seed default admin and user keys if the table is freshly created and empty
+    c.execute("SELECT COUNT(*) FROM api_keys")
+    if c.fetchone()[0] == 0:
+        env_admin_key = os.environ.get("ADMIN_API_KEY", "sk-bb72106aad16484d9790a3569ed3af8f")
+        global_limit = 60
+        # Seed Admin Key
+        c.execute("INSERT OR IGNORE INTO api_keys (key, name, active, allowed_models, role, expires_at, req_per_min) VALUES (?, ?, 1, ?, ?, ?, ?)",
+                  (env_admin_key, "Default Admin Key", "all", "admin", 0.0, global_limit))
+        # Seed standard bypass keys for cline / extensions
+        c.execute("INSERT OR IGNORE INTO api_keys (key, name, active, allowed_models, role, expires_at, req_per_min) VALUES (?, ?, 1, ?, ?, ?, ?)",
+                  ("freecc", "FreeCC Bypass Key", "all", "user", 0.0, global_limit))
+        c.execute("INSERT OR IGNORE INTO api_keys (key, name, active, allowed_models, role, expires_at, req_per_min) VALUES (?, ?, 1, ?, ?, ?, ?)",
+                  ("sk-opencode-free", "OpenCode Free Bypass Key", "all", "user", 0.0, global_limit))
         
     conn.commit()
     conn.close()

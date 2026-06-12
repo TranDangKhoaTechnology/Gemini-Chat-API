@@ -108,10 +108,21 @@ class Image(BaseModel):
         elif isinstance(self.proxy, dict):
             proxies_dict = self.proxy
 
+        # Prepare cookies jar for curl_cffi redirect domain tracking
+        from curl_cffi.requests import Cookies
+        jar = Cookies()
+        if isinstance(cookies, dict):
+            for name, val in cookies.items():
+                jar.set(name, val, domain=".google.com")
+        elif cookies is not None:
+            jar = cookies
+        else:
+            jar = None
+
         try:
             # Use AsyncSession from curl_cffi
             async with AsyncSession(
-                cookies=cookies,
+                cookies=jar,
                 proxies=proxies_dict,
                 impersonate=self.impersonate
                 # follow_redirects is handled automatically by curl_cffi
