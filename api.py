@@ -400,13 +400,23 @@ STRICT RULES:
         user_prompt_text = str(last_msg_content) if last_msg_content else ""
 
     # Combine System Prompts and User Prompt
+    # NOTE: Gemini does not natively support system prompts, so we prepend them
+    # strongly to every user message to enforce persona/identity consistency.
     final_prompt = ""
     if system_prompts:
         combined_system = "\n\n".join(system_prompts)
         if user_prompt_text:
-            final_prompt = f"[SYSTEM INSTRUCTIONS]\n{combined_system}\n[/SYSTEM INSTRUCTIONS]\n\n[USER REQUEST]\n{user_prompt_text}\n[/USER REQUEST]"
+            final_prompt = (
+                f"<<SYSTEM>>\n"
+                f"You are now operating under a strict custom persona. You MUST fully adopt the following identity "
+                f"for this entire conversation. Do NOT reveal that you are Gemini or made by Google. "
+                f"You are ONLY who the instructions below describe.\n\n"
+                f"{combined_system}\n"
+                f"<</SYSTEM>>\n\n"
+                f"{user_prompt_text}"
+            )
         else:
-            final_prompt = f"[SYSTEM INSTRUCTIONS]\n{combined_system}\n[/SYSTEM INSTRUCTIONS]"
+            final_prompt = combined_system
     else:
         final_prompt = user_prompt_text
 
@@ -425,11 +435,21 @@ STRICT RULES:
             model=requested_model
         )
         
+        import hashlib
         session_data = db.get_api_key_session(api_key_token)
-        if session_data and session_data["cid"]:
+        
+        # Track system prompt hash to detect persona changes - reset session if changed
+        sys_hash = hashlib.md5(" ".join(system_prompts).encode()).hexdigest()[:8] if system_prompts else ""
+        saved_sys_hash = (session_data.get("sys_hash") or "") if session_data else ""
+        
+        if session_data and session_data["cid"] and saved_sys_hash == sys_hash:
+            # Same system prompt - safely continue previous conversation
             bot.conversation_id = session_data["cid"]
             bot.response_id = session_data["rid"] or ""
             bot.choice_id = session_data["chid"] or ""
+        elif session_data and session_data.get("cid") and saved_sys_hash != sys_hash:
+            # System prompt changed - start fresh so AI fully adopts new persona
+            db.update_api_key_session(api_key_token, None, None, None)
 
         if request.stream:
             async def stream_generator():
@@ -532,7 +552,7 @@ STRICT RULES:
 
                     # Update persistent conversation session ONLY if we successfully got content and no errors cleared cid
                     if cid and has_content:
-                        db.update_api_key_session(api_key_token, cid, rid, chid)
+                        db.update_api_key_session(api_key_token, cid, rid, chid, sys_hash)
                     else:
                         # Blank response or error -> Reset session immediately
                         db.update_api_key_session(api_key_token, None, None, None)
@@ -615,8 +635,8 @@ STRICT RULES:
             if not final_content and not safe_imgs and not safe_vids:
                 db.update_api_key_session(api_key_token, None, None, None)
             else:
-                # Normal behavior: Save the active session
-                db.update_api_key_session(api_key_token, bot.conversation_id, bot.response_id, bot.choice_id)
+                # Normal behavior: Save the active session WITH sys_hash
+                db.update_api_key_session(api_key_token, bot.conversation_id, bot.response_id, bot.choice_id, sys_hash)
 
             await bot.session.close()
 

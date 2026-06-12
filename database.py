@@ -60,6 +60,12 @@ def init_db():
     except sqlite3.OperationalError:
         pass
 
+    # NEW: System Prompt Hash for persona change detection
+    try:
+        c.execute("ALTER TABLE api_keys ADD COLUMN sys_hash TEXT DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass
+
     # System status table for Extension Polling and Flood Control
     c.execute('''CREATE TABLE IF NOT EXISTS system_status
                  (id INTEGER PRIMARY KEY, needs_update INTEGER, last_alert REAL, global_req_per_min INTEGER)''')
@@ -240,26 +246,26 @@ def check_rate_limit(key: str) -> bool:
 def get_api_key_session(key):
     conn = _get_conn()
     c = conn.cursor()
-    c.execute("SELECT conversation_id, response_id, choice_id, last_used, timeout_hours FROM api_keys WHERE key = ?", (key,))
+    c.execute("SELECT conversation_id, response_id, choice_id, last_used, timeout_hours, sys_hash FROM api_keys WHERE key = ?", (key,))
     row = c.fetchone()
     conn.close()
     
     if not row:
         return None
         
-    cid, rid, chid, last_used, timeout_hours = row
+    cid, rid, chid, last_used, timeout_hours, sys_hash = row
     
     if time.time() - last_used > (timeout_hours * 3600):
         update_api_key_session(key, None, None, None)
         return None
         
-    return {"cid": cid, "rid": rid, "chid": chid}
+    return {"cid": cid, "rid": rid, "chid": chid, "sys_hash": sys_hash or ""}
 
-def update_api_key_session(key, cid, rid, chid):
+def update_api_key_session(key, cid, rid, chid, sys_hash=""):
     conn = _get_conn()
     c = conn.cursor()
-    c.execute("UPDATE api_keys SET conversation_id = ?, response_id = ?, choice_id = ?, last_used = ? WHERE key = ?", 
-              (cid, rid, chid, time.time(), key))
+    c.execute("UPDATE api_keys SET conversation_id = ?, response_id = ?, choice_id = ?, last_used = ?, sys_hash = ? WHERE key = ?", 
+              (cid, rid, chid, time.time(), sys_hash, key))
     conn.commit()
     conn.close()
 
