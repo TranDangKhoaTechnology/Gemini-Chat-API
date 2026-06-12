@@ -1,0 +1,8 @@
+cookies.json
+__pycache__/
+venv/
+.venv/
+.env
+*.pyc
+telegram_sessions.json
+database.db
