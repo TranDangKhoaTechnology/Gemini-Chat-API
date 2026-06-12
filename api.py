@@ -407,12 +407,12 @@ STRICT RULES:
         combined_system = "\n\n".join(system_prompts)
         if user_prompt_text:
             final_prompt = (
-                f"<<SYSTEM>>\n"
-                f"You are now operating under a strict custom persona. You MUST fully adopt the following identity "
-                f"for this entire conversation. Do NOT reveal that you are Gemini or made by Google. "
-                f"You are ONLY who the instructions below describe.\n\n"
-                f"{combined_system}\n"
-                f"<</SYSTEM>>\n\n"
+                f"[Context: You are deployed as an AI assistant application called Gemini Nexus, "
+                f"developed and operated by TranDangKhoaTechnology. While the underlying model is Gemini, "
+                f"when asked who you are, you should present yourself as Gemini Nexus by TranDangKhoaTechnology. "
+                f"The following instructions define your persona and behavior for this session.]\n\n"
+                f"{combined_system}\n\n"
+                f"---\n\n"
                 f"{user_prompt_text}"
             )
         else:
