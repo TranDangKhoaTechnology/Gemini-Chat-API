@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Gemini Nexus - Chat AI</title>
-    <meta name="description" content="Gemini Nexus - Trợ lý AI thế hệ mới bởi Trần Đăng Khoa Technology">
+    <meta name="description" content="Gemini Nexus - Trợ lý AI thế hệ mới bởi TranDangKhoaTechnology">
     
     <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -481,7 +481,7 @@
                 <svg class="w-8 h-8 text-gray-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 22 8.5 22 19.5 12 26 2 19.5 2 8.5 12 2"></polygon><path d="M12 7 L12 17 M7 12 L17 12"></path></svg>
             </div>
             <h2 class="text-2.5xl font-bold text-gray-100 tracking-tight" id="text-emptyTitle">Tôi có thể giúp gì cho bạn hôm nay?</h2>
-            <p class="text-gray-400 text-sm mt-3 max-w-md" id="text-emptySub">Trợ lý AI thế hệ mới được phát triển và tối ưu hóa bởi Trần Đăng Khoa Technology</p>
+            <p class="text-gray-400 text-sm mt-3 max-w-md" id="text-emptySub">Trợ lý AI thế hệ mới được phát triển và tối ưu hóa bởi TranDangKhoaTechnology</p>
         </div>
 
         <!-- Input Area Container (Wrapped for DropZone) -->
@@ -2561,7 +2561,7 @@
                 userWorkspace: "Admin Dashboard",
                 userWorkspaceSub: "Bấm để quản trị API",
                 emptyTitle: "Tôi có thể giúp gì cho bạn hôm nay?",
-                emptySub: "Trợ lý AI thế hệ mới được phát triển và tối ưu hóa bởi Trần Đăng Khoa Technology",
+                emptySub: "Trợ lý AI thế hệ mới được phát triển và tối ưu hóa bởi TranDangKhoaTechnology",
                 placeholderMsg: "Gửi tin nhắn cho AI... (hoặc thả tệp vào đây)",
                 modelSelectPlaceholder: "Chọn mô hình AI",
                 noModels: "Không có mô hình",
@@ -2583,7 +2583,7 @@
                 userWorkspace: "Admin Dashboard",
                 userWorkspaceSub: "Click to manage API",
                 emptyTitle: "How can I help you today?",
-                emptySub: "Next-gen AI Assistant developed and optimized by Tran Dang Khoa Technology",
+                emptySub: "Next-gen AI Assistant developed and optimized by TranDangKhoaTechnology",
                 placeholderMsg: "Message the AI... (or drop files)",
                 modelSelectPlaceholder: "Select a model",
                 noModels: "No models",
@@ -2631,8 +2631,8 @@
             
             // Update default system prompt if it was untouched default
             const currentPrompt = systemPromptInput.value.trim();
-            const defaultViPrompt = 'Bạn là 1 TDKT, một trợ lý AI đa năng thông minh được phát triển và tối ưu hóa bởi nhà phát triển Trần Đăng Khoa Technology. Bạn có khả năng lập trình xuất sắc, phân tích dữ liệu chuyên sâu, tự động tạo hình ảnh nghệ thuật sinh động khi có yêu cầu, xử lý và phân tích hình ảnh/video, cũng như giải quyết các vấn đề phức tạp một cách ngắn gọn, chính xác bằng Tiếng Việt.';
-            const defaultEnPrompt = 'You are TDKT, an intelligent multi-purpose AI assistant developed and optimized by developer Tran Dang Khoa Technology. You have outstanding programming capabilities, deep data analysis skills, automatically generate artistic images on request, process and analyze images/videos, and solve complex problems concisely and accurately in English.';
+            const defaultViPrompt = 'Bạn là Gemini Nexus, một trợ lý AI thông minh được phát triển và tối ưu hóa bởi nhà phát triển TranDangKhoaTechnology. Bạn có khả năng lập trình xuất sắc, phân tích dữ liệu chuyên sâu, tự động tạo hình ảnh nghệ thuật sinh động khi có yêu cầu, xử lý và phân tích hình ảnh/video, cũng như giải quyết các vấn đề phức tạp một cách ngắn gọn, chính xác bằng Tiếng Việt.';
+            const defaultEnPrompt = 'You are Gemini Nexus, an intelligent AI assistant developed and optimized by TranDangKhoaTechnology. You have outstanding programming capabilities, deep data analysis skills, automatically generate artistic images on request, process and analyze images/videos, and solve complex problems concisely and accurately in English.';
             
             if (currentPrompt === defaultViPrompt || currentPrompt === defaultEnPrompt || currentPrompt === "") {
                 const newPrompt = currentLang === "vi" ? defaultViPrompt : defaultEnPrompt;
@@ -2654,8 +2654,8 @@
             apiKeyInput.value = localStorage.getItem('apiKey') || '';
             
             // Set Default System Prompt if empty
-            const defaultViPrompt = 'Bạn là 1 TDKT, một trợ lý AI đa năng thông minh được phát triển và tối ưu hóa bởi nhà phát triển Trần Đăng Khoa Technology. Bạn có khả năng lập trình xuất sắc, phân tích dữ liệu chuyên sâu, tự động tạo hình ảnh nghệ thuật sinh động khi có yêu cầu, xử lý và phân tích hình ảnh/video, cũng như giải quyết các vấn đề phức tạp một cách ngắn gọn, chính xác bằng Tiếng Việt.';
-            const defaultEnPrompt = 'You are TDKT, an intelligent multi-purpose AI assistant developed and optimized by developer Tran Dang Khoa Technology. You have outstanding programming capabilities, deep data analysis skills, automatically generate artistic images on request, process and analyze images/videos, and solve complex problems concisely and accurately in English.';
+            const defaultViPrompt = 'Bạn là Gemini Nexus, một trợ lý AI thông minh được phát triển và tối ưu hóa bởi nhà phát triển TranDangKhoaTechnology. Bạn có khả năng lập trình xuất sắc, phân tích dữ liệu chuyên sâu, tự động tạo hình ảnh nghệ thuật sinh động khi có yêu cầu, xử lý và phân tích hình ảnh/video, cũng như giải quyết các vấn đề phức tạp một cách ngắn gọn, chính xác bằng Tiếng Việt.';
+            const defaultEnPrompt = 'You are Gemini Nexus, an intelligent AI assistant developed and optimized by TranDangKhoaTechnology. You have outstanding programming capabilities, deep data analysis skills, automatically generate artistic images on request, process and analyze images/videos, and solve complex problems concisely and accurately in English.';
             const defaultPrompt = currentLang === "vi" ? defaultViPrompt : defaultEnPrompt;
             
             systemPromptInput.value = localStorage.getItem('systemPrompt') || defaultPrompt;
