@@ -3047,6 +3047,12 @@
             return '';
         }
 
+        function stripAttachmentsFromContent(content) {
+            if (!Array.isArray(content)) return content || '';
+            const textItem = content.find(c => c.type === 'text');
+            return textItem?.text || '';
+        }
+
         function copyMessageIndex(index, btn) {
             const text = extractTextFromMsg(messageHistory[index]);
             fallbackCopyTextToClipboard(text);
@@ -3548,7 +3554,7 @@
                                 apiMessages.push({ role: 'user', content: textContent });
                             }
                         } else {
-                            apiMessages.push({ role: m.role, content: m.content });
+                            apiMessages.push({ role: m.role, content: stripAttachmentsFromContent(m.content) });
                         }
                     });
 
